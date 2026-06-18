@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
 const API = process.env.REACT_APP_API_URL;
@@ -20,20 +20,21 @@ function ACDetail() {
 
   /* ================= LOAD AC ================= */
 
-  const loadAC = async () => {
+  const loadAC = useCallback(async () => {
     try {
       const res = await fetch(`${API}/ac/${id}`);
       const data = await res.json();
+
       setAc(data);
       setStatus(data.status || "Running");
     } catch (err) {
       console.error(err);
     }
-  };
+  }, [id]);
 
   /* ================= LOAD HISTORY ================= */
 
-  const loadHistory = async () => {
+  const loadHistory = useCallback(async () => {
     try {
       const res = await fetch(`${API}/ac-history/${id}`);
       const data = await res.json();
@@ -42,12 +43,12 @@ function ACDetail() {
     } catch {
       setHistory([]);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
     loadAC();
     loadHistory();
-  }, [id]);
+  }, [loadAC, loadHistory]);
 
   /* ================= SAVE REPAIR ================= */
 
@@ -108,8 +109,6 @@ function ACDetail() {
         ⬅ Back
       </button>
 
-      {/* ================= AC DETAILS ================= */}
-
       <div style={{ ...cardStyle, marginTop: "20px" }}>
         <h2 style={{ color: "#1565c0" }}>
           ❄ {ac.acNo}
@@ -122,8 +121,6 @@ function ACDetail() {
         <p><b>Location:</b> {ac.location}</p>
         <p><b>Status:</b> {ac.status}</p>
       </div>
-
-      {/* ================= REPAIR UPDATE ================= */}
 
       <div style={cardStyle}>
         <button
@@ -142,7 +139,6 @@ function ACDetail() {
 
         {showRepairForm && (
           <div style={{ marginTop: "20px" }}>
-
             <input
               type="date"
               value={repairDate}
@@ -202,12 +198,9 @@ function ACDetail() {
             >
               💾 Save
             </button>
-
           </div>
         )}
       </div>
-
-      {/* ================= HISTORY ================= */}
 
       <div style={{ marginTop: "40px" }}>
         <h2 style={{ color: "#fff" }}>
