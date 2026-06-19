@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+const API = process.env.REACT_APP_API_URL;
 
 function MotorDetail() {
   const { id } = useParams();
@@ -33,7 +34,7 @@ function MotorDetail() {
 
   /* LOAD FUNCTIONS */
   const loadMotor = useCallback(async () => {
-    const res = await fetch(`http://localhost:5004/motors/${id}`);
+    const res = await fetch(`${API}/motors/${id}`);
     const data = await res.json();
     if (!res.ok) {
       setError(data.message || "Motor not found");
@@ -43,19 +44,19 @@ function MotorDetail() {
   }, [id]);
 
   const loadVibrationHistory = useCallback(async () => {
-    const res = await fetch(`http://localhost:5004/vibration-test/${id}`);
+    const res = await fetch(`${API}/vibration-test/${id}`);
     const data = await res.json();
     setVibrationHistory(Array.isArray(data) ? data : []);
   }, [id]);
 
   const loadMotorHistory = useCallback(async () => {
-    const res = await fetch(`http://localhost:5004/motor-history/${id}`);
+    const res = await fetch(`${API}/motor-history/${id}`);
     const data = await res.json();
     setMotorHistory(Array.isArray(data) ? data : []);
   }, [id]);
 
   const loadGreasingHistory = useCallback(async () => {
-    const res = await fetch(`http://localhost:5004/greasing/${id}`);
+    const res = await fetch(`${API}/greasing/${id}`);
     const data = await res.json();
     setGreasingHistory(Array.isArray(data) ? data : []);
   }, [id]);
@@ -76,7 +77,7 @@ function MotorDetail() {
 
     setLoading(true);
 
-    await fetch("http://localhost:5004/change-motor", {
+    await fetch(`${API}/change-motor`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -106,7 +107,7 @@ function MotorDetail() {
       return;
     }
 
-    await fetch("http://localhost:5004/vibration-test", {
+    await fetch(`${API}/vibration-test`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -136,7 +137,7 @@ function MotorDetail() {
       return;
     }
 
-    await fetch("http://localhost:5004/greasing", {
+    await fetch(`${API}/greasing`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
