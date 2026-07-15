@@ -70,8 +70,6 @@ function CraneDetail() {
     fetchData();
   }, [id]);
 
-  // Basic information uneditable होने के कारण handleBasicChange को यहाँ से हटा दिया गया है
-
   const handleSafetyChange = useCallback((field, value) => {
     setCrane(prev => ({
       ...prev,
@@ -144,8 +142,10 @@ function CraneDetail() {
     borderBottom: "1px solid rgba(255,255,255,0.2)"
   };
 
+  // 🔤 textTransform: "uppercase" को वापस जोड़ दिया गया है
   const labelStyle = {
     fontSize: "12px",
+    textTransform: "uppercase",
     letterSpacing: "0.5px",
     color: "rgba(255, 255, 255, 0.7)",
     fontWeight: "bold",
@@ -219,7 +219,7 @@ function CraneDetail() {
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "30px", marginTop: "30px" }}>
         
-        {/* BASIC INFORMATION - अब यह हमेशा के लिए Uneditable (लॉक) है */}
+        {/* BASIC INFORMATION - Uneditable & Uppercase Labels */}
         <div
           style={getCardStyle("basic")}
           onMouseEnter={() => setHoveredCard("basic")}
@@ -236,7 +236,7 @@ function CraneDetail() {
           ))}
         </div>
 
-        {/* SAFETY CHECKS - Editable */}
+        {/* SAFETY CHECKS - Editable & Uppercase Labels */}
         <div
           style={getCardStyle("safety")}
           onMouseEnter={() => setHoveredCard("safety")}
@@ -265,7 +265,7 @@ function CraneDetail() {
           })}
         </div>
 
-        {/* BRAKE CHECKS - Editable */}
+        {/* BRAKE CHECKS - Editable & Uppercase Labels */}
         <div
           style={getCardStyle("brake")}
           onMouseEnter={() => setHoveredCard("brake")}
@@ -313,11 +313,11 @@ function CraneDetail() {
               if (el) {
                 const width = window.innerWidth;
                 if (width < 600) {
-                  el.style.gridTemplateColumns = "1fr"; // मोबाइल पे 1
+                  el.style.gridTemplateColumns = "1fr";
                 } else if (width < 1300) {
-                  el.style.gridTemplateColumns = "repeat(auto-fill, minmax(22%, 1fr))"; // लैपटॉप पे 4
+                  el.style.gridTemplateColumns = "repeat(auto-fill, minmax(22%, 1fr))";
                 } else {
-                  el.style.gridTemplateColumns = "repeat(auto-fill, minmax(15%, 1fr))"; // डेस्कटॉप पे 6
+                  el.style.gridTemplateColumns = "repeat(auto-fill, minmax(15%, 1fr))";
                 }
               }
             }}
