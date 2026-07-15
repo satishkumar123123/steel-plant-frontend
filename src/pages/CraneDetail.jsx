@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 
 const API = process.env.REACT_APP_API_URL;
 
-// 1️⃣ चाबियाँ (Keys) पहले से तय की गईं ताकि डेटा न होने पर भी इनपुट्स दिखें
+// चाबियाँ (Keys) पहले से तय की गईं ताकि डेटा खाली होने पर भी इनपुट्स स्क्रीन पर दिखें
 const SAFETY_KEYS = [
   "craneHooter",
   "mhUpDownLimitSwitch",
@@ -70,9 +70,7 @@ function CraneDetail() {
     fetchData();
   }, [id]);
 
-  const handleBasicChange = useCallback((field, value) => {
-    setCrane(prev => ({ ...prev, [field]: value }));
-  }, []);
+  // Basic information uneditable होने के कारण handleBasicChange को यहाँ से हटा दिया गया है
 
   const handleSafetyChange = useCallback((field, value) => {
     setCrane(prev => ({
@@ -148,7 +146,6 @@ function CraneDetail() {
 
   const labelStyle = {
     fontSize: "12px",
-    textTransform: "uppercase",
     letterSpacing: "0.5px",
     color: "rgba(255, 255, 255, 0.7)",
     fontWeight: "bold",
@@ -222,7 +219,7 @@ function CraneDetail() {
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "30px", marginTop: "30px" }}>
         
-        {/* BASIC INFORMATION */}
+        {/* BASIC INFORMATION - अब यह हमेशा के लिए Uneditable (लॉक) है */}
         <div
           style={getCardStyle("basic")}
           onMouseEnter={() => setHoveredCard("basic")}
@@ -232,20 +229,14 @@ function CraneDetail() {
           {["serialNo", "make", "capacityTon", "kw", "location"].map((field) => (
             <div key={field} style={itemStyle}>
               <div style={labelStyle}>{field}</div>
-              {editMode ? (
-                <input
-                  value={crane[field] || ""}
-                  onChange={e => handleBasicChange(field, e.target.value)}
-                  style={inputStyle}
-                />
-              ) : (
-                <div style={{ fontSize: "16px", fontWeight: "500" }}>{crane[field] || "—"}</div>
-              )}
+              <div style={{ fontSize: "16px", fontWeight: "500" }}>
+                {crane[field] || "—"}
+              </div>
             </div>
           ))}
         </div>
 
-        {/* SAFETY CHECKS */}
+        {/* SAFETY CHECKS - Editable */}
         <div
           style={getCardStyle("safety")}
           onMouseEnter={() => setHoveredCard("safety")}
@@ -274,7 +265,7 @@ function CraneDetail() {
           })}
         </div>
 
-        {/* BRAKE CHECKS */}
+        {/* BRAKE CHECKS - Editable */}
         <div
           style={getCardStyle("brake")}
           onMouseEnter={() => setHoveredCard("brake")}
@@ -304,7 +295,7 @@ function CraneDetail() {
         </div>
       </div>
 
-      {/* ================= 🕒 HISTORY SECTION UPGRADED ================= */}
+      {/* ================= 🕒 HISTORY SECTION ================= */}
       <div style={{ marginTop: "60px" }}>
         <h2 style={{ color: "#ffffff", borderBottom: "2px solid rgba(255,255,255,0.3)", paddingBottom: "10px", marginBottom: "20px" }}>
           🕒 Crane Update History
@@ -313,33 +304,25 @@ function CraneDetail() {
         {history.length === 0 ? (
           <p style={{ color: "#fff" }}>No history available</p>
         ) : (
-          /* 2️⃣ रेस्पॉन्सिव ग्रिड: डेस्कटॉप पे 6, लैपटॉप पे 4, मोबाइल पे 1 */
-          <div style={{ 
-            display: "grid", 
-            gridTemplateColumns: "repeat(auto-fill, minmax(calc(100% / 6 - 20px), 1fr))",
-            gap: "20px",
-            // रिस्पॉन्सिवनेस के लिए छोटा सा हैक: अगर स्क्रीन बहुत छोटी हो तो 100% विड्थ पर आ जाए
-            style: {
-              "@media (max-width: 1200px)": { gridTemplateColumns: "repeat(auto-fill, minmax(calc(100% / 4 - 20px), 1fr))" },
-              "@media (max-width: 600px)": { gridTemplateColumns: "1fr" }
-            }
-          }}
-          // शुद्ध इनलाइन रेस्पॉन्सिव अप्रोच (बेस्ट प्रैक्टिस फॉर विदाउट मीडिया क्वेरी फाइल)
-          ref={(el) => {
-            if (el) {
-              const width = window.innerWidth;
-              if (width < 600) {
-                el.style.gridTemplateColumns = "1fr";
-              } else if (width < 1300) {
-                el.style.gridTemplateColumns = "repeat(auto-fill, minmax(22%, 1fr))"; // ~4 per row
-              } else {
-                el.style.gridTemplateColumns = "repeat(auto-fill, minmax(15%, 1fr))"; // ~6 per row
+          <div 
+            style={{ 
+              display: "grid", 
+              gap: "20px"
+            }}
+            ref={(el) => {
+              if (el) {
+                const width = window.innerWidth;
+                if (width < 600) {
+                  el.style.gridTemplateColumns = "1fr"; // मोबाइल पे 1
+                } else if (width < 1300) {
+                  el.style.gridTemplateColumns = "repeat(auto-fill, minmax(22%, 1fr))"; // लैपटॉप पे 4
+                } else {
+                  el.style.gridTemplateColumns = "repeat(auto-fill, minmax(15%, 1fr))"; // डेस्कटॉप पे 6
+                }
               }
-            }
-          }}
+            }}
           >
             {history.map((h, index) => (
-              /* 3️⃣ हर कार्ड का बैकग्राउंड कलर और टेक्स्ट वाइट सेट किया */
               <div 
                 key={index} 
                 style={{
