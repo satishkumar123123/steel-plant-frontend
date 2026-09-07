@@ -47,6 +47,7 @@ function CraneDetail() {
       try {
         const craneRes = await fetch(`${API}/crane/${id}`);
         const craneData = await craneRes.json();
+        if (!craneRes.ok) throw new Error("Failed to load crane");
 
         const formatted = {
           ...craneData,
@@ -85,27 +86,35 @@ function CraneDetail() {
   }, []);
 
   const handleSave = async () => {
+    if (saving) return;
+    setSaving(true);
     try {
-      setSaving(true);
-      await fetch(`${API}/crane/${id}`, {
+      const response = await fetch(`${API}/crane/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...crane,
-          lastUpdatedBy: "Maintenance Team",
-          lastUpdatedAt: new Date()
+          safetyChecks: Object.fromEntries(SAFETY_KEYS.map(key => [key, crane.safetyChecks[key] || "OK"])),
+          brakeChecks: Object.fromEntries(BRAKE_KEYS.map(key => [key, crane.brakeChecks[key] || "Within Limit"])),
+          lastUpdatedBy: "Maintenance Team"
         })
       });
-
-      alert("Crane updated successfully ✅");
-      setOriginalCrane(crane);
+      const savedCrane = await response.json();
+      if (!response.ok) throw new Error(savedCrane.message || "Inspection save failed");
+      setCrane(savedCrane);
+      setOriginalCrane(savedCrane);
       setEditMode(false);
-
-      const historyRes = await fetch(`${API}/crane-history/${id}`);
-      const historyData = await historyRes.json();
-      setHistory(Array.isArray(historyData) ? historyData : []);
-    } catch {
-      alert("Update failed ❌");
+      try {
+        const historyRes = await fetch(`${API}/crane-history/${id}`);
+        if (!historyRes.ok) throw new Error("History unavailable");
+        const historyData = await historyRes.json();
+        if (!Array.isArray(historyData)) throw new Error("Invalid history response");
+        setHistory(historyData);
+        alert("Inspection saved to history ✅");
+      } catch {
+        alert("Inspection saved, but history could not refresh. Reload the page to view it.");
+      }
+    } catch (error) {
+      alert(error.message || "Update failed ❌");
     } finally {
       setSaving(false);
     }
@@ -203,6 +212,7 @@ function CraneDetail() {
                 {saving ? "Saving..." : "💾 Save"}
               </button>
               <button 
+                disabled={saving}
                 onClick={handleCancel}
                 style={{ background: "#d32f2f", color: "#fff", border: "none", padding: "10px 20px", borderRadius: "10px", cursor: "pointer", fontWeight: "bold" }}
               >
@@ -216,6 +226,12 @@ function CraneDetail() {
       <h2 style={{ color: "#ffffff", marginTop: "20px", fontSize: "28px" }}>
         {crane.plant} - {crane.craneNo}
       </h2>
+
+      {crane.checksAreDefaults && (
+        <p style={{ color: "#fff" }}>
+          Next inspection defaults: OK / Within Limit. Saved inspection results are shown in history below.
+        </p>
+      )}
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "30px", marginTop: "30px" }}>
         
@@ -251,6 +267,7 @@ function CraneDetail() {
                 {editMode ? (
                   <select
                     value={value}
+                    disabled={saving}
                     onChange={e => handleSafetyChange(key, e.target.value)}
                     style={{ ...inputStyle, color: "#000", background: "#fff" }}
                   >
@@ -280,6 +297,7 @@ function CraneDetail() {
                 {editMode ? (
                   <select
                     value={value}
+                    disabled={saving}
                     onChange={e => handleBrakeChange(key, e.target.value)}
                     style={{ ...inputStyle, color: "#000", background: "#fff" }}
                   >
@@ -298,7 +316,7 @@ function CraneDetail() {
       {/* ================= 🕒 HISTORY SECTION ================= */}
       <div style={{ marginTop: "60px" }}>
         <h2 style={{ color: "#ffffff", borderBottom: "2px solid rgba(255,255,255,0.3)", paddingBottom: "10px", marginBottom: "20px" }}>
-          🕒 Crane Update History
+          🕒 Crane Inspection History
         </h2>
 
         {history.length === 0 ? (
@@ -339,23 +357,29 @@ function CraneDetail() {
               >
                 <div>
                   <div style={{ borderBottom: "1px solid rgba(255,255,255,0.3)", paddingBottom: "5px", marginBottom: "10px" }}>
-                    <div style={{ fontSize: "11px", opacity: 0.8 }}>{new Date(h.updatedAt).toLocaleDateString()}</div>
+                    <div style={{ fontSize: "11px", opacity: 0.8 }}>{new Date(h.updatedAt).toLocaleString()}</div>
                     <div style={{ fontWeight: "bold", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
                       👤 {h.updatedBy || "Team"}
+                      <div>{h.recordType === "inspection" ? "Saved inspection" : "Previous record"}</div>
                     </div>
                   </div>
                   
                   <div style={{ marginBottom: "10px" }}>
                     <span style={{ fontSize: "11px", fontWeight: "bold", display: "block", color: "rgba(255,255,255,0.7)" }}>SAFETY</span>
-                    <div>Hooter: {h.oldData?.safetyChecks?.craneHooter || "—"}</div>
-                    <div>MH Limit: {h.oldData?.safetyChecks?.mhUpDownLimitSwitch || "—"}</div>
-                    <div>AH Limit: {h.oldData?.safetyChecks?.ahUpDownLimitSwitch || "—"}</div>
+                    {SAFETY_KEYS.map(key => (
+                      <div key={key} style={{ marginTop: "6px", overflowWrap: "anywhere" }}>
+                        {key.replace(/([A-Z])/g, " $1")}: {(h.inspectionData || h.oldData)?.safetyChecks?.[key] || "—"}
+                      </div>
+                    ))}
                   </div>
 
                   <div>
                     <span style={{ fontSize: "11px", fontWeight: "bold", display: "block", color: "rgba(255,255,255,0.7)" }}>BRAKES</span>
-                    <div>Main: {h.oldData?.brakeChecks?.mainHoistBrakeGap || "—"}</div>
-                    <div>Aux: {h.oldData?.brakeChecks?.auxHoistBrakeGap || "—"}</div>
+                    {BRAKE_KEYS.map(key => (
+                      <div key={key} style={{ marginTop: "6px", overflowWrap: "anywhere" }}>
+                        {key.replace(/([A-Z])/g, " $1")}: {(h.inspectionData || h.oldData)?.brakeChecks?.[key] || "—"}
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
