@@ -29,6 +29,31 @@ const historyColors = [
   "#c2410c"  // 🟧 Orange
 ];
 
+const checkLabel = key => key.replace(/([A-Z])/g, " $1").replace(/^./, c => c.toUpperCase());
+
+function CheckBadge({ value }) {
+  const faulty = value === "Not OK" || value === "Outside Limit";
+  const good = value === "OK" || value === "Within Limit";
+  return <span style={{ display: "inline-block", padding: "3px 8px", borderRadius: "6px",
+    background: faulty ? "#fee2e2" : good ? "#dcfce7" : "#e5e7eb",
+    color: faulty ? "#991b1b" : good ? "#166534" : "#374151", fontWeight: 700 }}>{value || "—"}</span>;
+}
+
+function inspectionIssues(record) {
+  if (record.recordType !== "inspection") return [];
+  const entries = [];
+  for (const [group, keys] of [["safetyChecks", SAFETY_KEYS], ["brakeChecks", BRAKE_KEYS]]) {
+    for (const key of keys) {
+      const value = record.inspectionData?.[group]?.[key];
+      if (value === "Not OK" || value === "Outside Limit") {
+        const issueKey = group + "_" + key;
+        entries.push({ issueKey, group, key, value, status: "Open", ...record.issues?.[issueKey] });
+      }
+    }
+  }
+  return entries;
+}
+
 function CraneDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -40,6 +65,39 @@ function CraneDetail() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [hoveredCard, setHoveredCard] = useState(null);
+
+  const [inspectorName, setInspectorName] = useState("");
+  const [remark, setRemark] = useState("");
+  const [actionTaken, setActionTaken] = useState("");
+  const [resolutionDrafts, setResolutionDrafts] = useState({});
+  const [resolving, setResolving] = useState(null);
+  const [historyError, setHistoryError] = useState("");
+  const openIssues = history.flatMap(record => inspectionIssues(record)
+    .filter(issue => issue.status !== "Resolved").map(issue => ({ ...issue, record })));
+
+  const resolveIssue = async (record, issue) => {
+    const draftKey = record._id + ":" + issue.issueKey;
+    const draft = resolutionDrafts[draftKey] || {};
+    if (!draft.resolvedBy?.trim() || !draft.resolutionAction?.trim()) {
+      alert("Enter resolved by and repair action");
+      return;
+    }
+    if (resolving) return;
+    setResolving(draftKey);
+    try {
+      const response = await fetch(`${API}/crane-history/${record._id}/issues/${issue.issueKey}/resolve`, {
+        method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(draft)
+      });
+      const updated = await response.json();
+      if (!response.ok) throw new Error(updated.message || "Could not resolve issue");
+      setHistory(prev => prev.map(row => row._id === updated._id ? updated : row));
+      setResolutionDrafts(prev => { const next = { ...prev }; delete next[draftKey]; return next; });
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      setResolving(null);
+    }
+  };
 
   /* ================= LOAD CRANE + HISTORY ================= */
   useEffect(() => {
@@ -59,10 +117,14 @@ function CraneDetail() {
         setOriginalCrane(formatted);
 
         const historyRes = await fetch(`${API}/crane-history/${id}`);
+        if (!historyRes.ok) throw new Error("History unavailable");
         const historyData = await historyRes.json();
-        setHistory(Array.isArray(historyData) ? historyData : []);
+        if (!Array.isArray(historyData)) throw new Error("Invalid history");
+        setHistory(historyData);
+        setHistoryError("");
       } catch {
-        alert("Failed to load crane ❌");
+        setHistoryError("Records could not be fully loaded. Reload before relying on the open issue list.");
+        alert("Failed to load crane or history ❌");
       } finally {
         setLoading(false);
       }
@@ -87,6 +149,7 @@ function CraneDetail() {
 
   const handleSave = async () => {
     if (saving) return;
+    if (!inspectorName.trim()) { alert("Enter inspector name"); return; }
     setSaving(true);
     try {
       const response = await fetch(`${API}/crane/${id}`, {
@@ -95,7 +158,8 @@ function CraneDetail() {
         body: JSON.stringify({
           safetyChecks: Object.fromEntries(SAFETY_KEYS.map(key => [key, crane.safetyChecks[key] || "OK"])),
           brakeChecks: Object.fromEntries(BRAKE_KEYS.map(key => [key, crane.brakeChecks[key] || "Within Limit"])),
-          lastUpdatedBy: "Maintenance Team"
+          lastUpdatedBy: inspectorName.trim(),
+          inspectorName: inspectorName.trim(), remark, actionTaken
         })
       });
       const savedCrane = await response.json();
@@ -103,14 +167,18 @@ function CraneDetail() {
       setCrane(savedCrane);
       setOriginalCrane(savedCrane);
       setEditMode(false);
+      setRemark("");
+      setActionTaken("");
       try {
         const historyRes = await fetch(`${API}/crane-history/${id}`);
         if (!historyRes.ok) throw new Error("History unavailable");
         const historyData = await historyRes.json();
         if (!Array.isArray(historyData)) throw new Error("Invalid history response");
         setHistory(historyData);
+        setHistoryError("");
         alert("Inspection saved to history ✅");
       } catch {
+        setHistoryError("History refresh failed. Reload to see the latest open faults.");
         alert("Inspection saved, but history could not refresh. Reload the page to view it.");
       }
     } catch (error) {
@@ -227,6 +295,25 @@ function CraneDetail() {
         {crane.plant} - {crane.craneNo}
       </h2>
 
+      {editMode && (
+        <div style={{ background: "#fff", padding: "20px", borderRadius: "12px", display: "grid", gap: "12px" }}>
+          <h3 style={{ margin: 0 }}>Inspection Notes</h3>
+          <label>Inspector name *
+            <input value={inspectorName} maxLength={120} disabled={saving} onChange={e => setInspectorName(e.target.value)}
+              style={{ display: "block", width: "100%", boxSizing: "border-box", padding: "10px" }} />
+          </label>
+          <label>Remark / problem observed
+            <textarea value={remark} maxLength={2000} disabled={saving} onChange={e => setRemark(e.target.value)}
+              style={{ display: "block", width: "100%", boxSizing: "border-box", padding: "10px" }} />
+          </label>
+          <label>Action taken
+            <textarea value={actionTaken} maxLength={2000} disabled={saving} onChange={e => setActionTaken(e.target.value)}
+              style={{ display: "block", width: "100%", boxSizing: "border-box", padding: "10px" }} />
+          </label>
+          <small>Faults remain Open until the repair is recorded using Mark Resolved.</small>
+        </div>
+      )}
+
       {crane.checksAreDefaults && (
         <p style={{ color: "#fff" }}>
           Next inspection defaults: OK / Within Limit. Saved inspection results are shown in history below.
@@ -275,7 +362,7 @@ function CraneDetail() {
                     <option value="Not OK">Not OK</option>
                   </select>
                 ) : (
-                  <div style={{ fontSize: "16px", fontWeight: "500" }}>{value}</div>
+                  <CheckBadge value={value} />
                 )}
               </div>
             );
@@ -305,13 +392,50 @@ function CraneDetail() {
                     <option value="Outside Limit">Outside Limit</option>
                   </select>
                 ) : (
-                  <div style={{ fontSize: "16px", fontWeight: "500" }}>{value}</div>
+                  <CheckBadge value={value} />
                 )}
               </div>
             );
           })}
         </div>
       </div>
+
+      <section style={{ marginTop: "35px", padding: "22px", background: "#fff7ed", borderRadius: "14px" }}>
+        <h2 style={{ color: "#9a3412" }}>Open Faults ({openIssues.length})</h2>
+        <p>These faults remain open even when the next inspection defaults show OK / Within Limit.</p>
+        {historyError && <p role="alert" style={{ color: "#b91c1c" }}>{historyError}</p>}
+        {!historyError && openIssues.length === 0 && <p>No open faults in recorded inspections.</p>}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "16px" }}>
+          {openIssues.map(({ record, ...issue }) => {
+            const draftKey = record._id + ":" + issue.issueKey;
+            const draft = resolutionDrafts[draftKey] || {};
+            const changeDraft = (field, value) => setResolutionDrafts(prev => ({
+              ...prev, [draftKey]: { ...prev[draftKey], [field]: value }
+            }));
+            return (
+              <div key={draftKey} style={{ background: "#fff", border: "1px solid #fca5a5", padding: "16px", borderRadius: "10px" }}>
+                <strong>{checkLabel(issue.key)}</strong> <CheckBadge value={issue.value} />
+                <p style={{ color: "#991b1b", fontWeight: 700 }}>Open</p>
+                <p>{new Date(record.updatedAt).toLocaleString()} · {record.inspectorName || record.updatedBy}</p>
+                {record.remark && <p>Remark: {record.remark}</p>}
+                {record.actionTaken && <p>Inspection action: {record.actionTaken}</p>}
+                <label>Resolved by
+                  <input value={draft.resolvedBy || ""} maxLength={120} disabled={!!resolving}
+                    onChange={e => changeDraft("resolvedBy", e.target.value)} style={{ display: "block", width: "100%", boxSizing: "border-box", padding: "8px" }} />
+                </label>
+                <label>Repair action
+                  <textarea value={draft.resolutionAction || ""} maxLength={2000} disabled={!!resolving}
+                    onChange={e => changeDraft("resolutionAction", e.target.value)} style={{ display: "block", width: "100%", boxSizing: "border-box", padding: "8px" }} />
+                </label>
+                <button disabled={!!resolving} onClick={() => resolveIssue(record, issue)}
+                  style={{ marginTop: "10px", padding: "10px", background: "#166534", color: "#fff", border: 0, borderRadius: "6px" }}>
+                  {resolving === draftKey ? "Saving..." : "Mark Resolved"}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </section>
 
       {/* ================= 🕒 HISTORY SECTION ================= */}
       <div style={{ marginTop: "60px" }}>
@@ -364,11 +488,24 @@ function CraneDetail() {
                     </div>
                   </div>
                   
+                  {h.remark && <p style={{ overflowWrap: "anywhere" }}>Remark: {h.remark}</p>}
+                  {h.actionTaken && <p style={{ overflowWrap: "anywhere" }}>Action taken: {h.actionTaken}</p>}
+                  {inspectionIssues(h).map(issue => (
+                    <div key={issue.issueKey} style={{ marginBottom: "10px", padding: "8px", borderRadius: "6px",
+                      background: issue.status === "Resolved" ? "#dcfce7" : "#fee2e2", color: "#111827", overflowWrap: "anywhere" }}>
+                      <strong>{checkLabel(issue.key)} — {issue.status}</strong>
+                      {issue.status === "Resolved" && <>
+                        <div>By: {issue.resolvedBy}</div>
+                        <div>{new Date(issue.resolvedAt).toLocaleString()}</div>
+                        <div>Repair: {issue.resolutionAction}</div>
+                      </>}
+                    </div>
+                  ))}
                   <div style={{ marginBottom: "10px" }}>
                     <span style={{ fontSize: "11px", fontWeight: "bold", display: "block", color: "rgba(255,255,255,0.7)" }}>SAFETY</span>
                     {SAFETY_KEYS.map(key => (
                       <div key={key} style={{ marginTop: "6px", overflowWrap: "anywhere" }}>
-                        {key.replace(/([A-Z])/g, " $1")}: {(h.inspectionData || h.oldData)?.safetyChecks?.[key] || "—"}
+                        {checkLabel(key)}: <CheckBadge value={(h.inspectionData || h.oldData)?.safetyChecks?.[key]} />
                       </div>
                     ))}
                   </div>
@@ -377,7 +514,7 @@ function CraneDetail() {
                     <span style={{ fontSize: "11px", fontWeight: "bold", display: "block", color: "rgba(255,255,255,0.7)" }}>BRAKES</span>
                     {BRAKE_KEYS.map(key => (
                       <div key={key} style={{ marginTop: "6px", overflowWrap: "anywhere" }}>
-                        {key.replace(/([A-Z])/g, " $1")}: {(h.inspectionData || h.oldData)?.brakeChecks?.[key] || "—"}
+                        {checkLabel(key)}: <CheckBadge value={(h.inspectionData || h.oldData)?.brakeChecks?.[key]} />
                       </div>
                     ))}
                   </div>
