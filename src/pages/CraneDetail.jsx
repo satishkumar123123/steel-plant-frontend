@@ -382,7 +382,7 @@ function CraneDetail() {
         ) : (
           <div className="cd-history-grid">
             {history.map((h, index) => (
-              <div key={h._id || index} className={`cd-history-card cd-history-tone-${index % 4}`}>
+              <div key={h._id || index} className={`cd-history-card cd-history-tone-${index % 6}`}>
                 <div>
                   <div style={{ borderBottom: "1px solid rgba(255,255,255,0.3)", paddingBottom: "5px", marginBottom: "10px" }}>
                     <div style={{ fontSize: "11px", opacity: 0.8 }}>{new Date(h.updatedAt).toLocaleString()}</div>
