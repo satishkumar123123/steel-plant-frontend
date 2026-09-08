@@ -260,7 +260,7 @@ function CraneDetail() {
         </p>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))", gap: "30px", marginTop: "30px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))", gap: "14px", marginTop: "18px" }}>
         
         {/* BASIC INFORMATION - Uneditable & Uppercase Labels */}
         <div

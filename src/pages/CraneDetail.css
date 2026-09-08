@@ -57,3 +57,39 @@
 .cd-empty{padding:28px;border:1px dashed #c7d2fe;background:white;border-radius:16px;color:#64748b;text-align:center}
 @media(max-width:700px){.cd-hero{align-items:stretch;flex-direction:column}.cd-mode{flex:auto;align-items:flex-start;text-align:left;padding:14px 18px}.cd-mode-icon{display:none}.cd-toolbar>div{width:100%}.cd-toolbar>div>button{flex:1}.cd-equipment-card{padding:18px}.cd-hero-tags span{font-size:11px}}
 @media(prefers-reduced-motion:reduce){.crane-detail button{transition:none}.crane-detail button:not(:disabled):hover{transform:none}}
+/* Deep equipment palette and compact maintenance panels. */
+.crane-detail{padding:clamp(12px,2vw,28px)}
+.cd-hero{padding:22px 26px;border-radius:18px;margin-bottom:18px}
+.cd-hero h1{font-size:clamp(25px,3vw,34px);margin:10px 0 8px}
+.cd-hero p{margin-bottom:12px;font-size:13px}
+.cd-mode{padding:12px;flex-basis:195px}
+.cd-mode-icon{width:36px;height:36px;font-size:28px;margin-bottom:6px}
+.cd-basic{--cd-accent:#c4b5fd;--cd-border:#7c3aed;--cd-tint:#312e81;--cd-value:#ede9fe;background:linear-gradient(135deg,#312e81,#4c1d95)}
+.cd-safety{--cd-accent:#6ee7b7;--cd-border:#059669;--cd-tint:#064e3b;--cd-value:#d1fae5;background:linear-gradient(135deg,#064e3b,#115e59)}
+.cd-brake{--cd-accent:#fda4af;--cd-border:#e11d48;--cd-tint:#881337;--cd-value:#ffe4e6;background:linear-gradient(135deg,#881337,#831843)}
+.cd-equipment-card{padding:16px;border-radius:16px;border-top-width:3px;box-shadow:0 8px 20px #0f172a25}
+.cd-equipment-card h3{font-size:17px;margin-bottom:12px!important;padding-bottom:10px!important;color:var(--cd-accent)}
+.cd-equipment-card>div{background:#02061738!important;border-color:#ffffff1c!important;padding:9px 11px!important;margin-bottom:8px!important;border-radius:9px!important}
+.cd-equipment-card>div>div:first-child{font-size:11px!important;color:var(--cd-accent)!important;margin-bottom:5px!important}
+.cd-equipment-card>div>div:nth-child(2){font-size:14px!important;font-weight:650!important;color:var(--cd-value)}
+.cd-equipment-card select{background:#0f172a!important;color:#f8fafc!important;border-color:var(--cd-border)!important;padding:7px 9px!important;font-size:12px!important}
+.cd-equipment-card select option{background:#0f172a;color:#f8fafc}
+.cd-faults{margin-top:22px;padding:18px;background:linear-gradient(120deg,#7c2d12,#9a3412 55%,#78350f);border-color:#c2410c;border-radius:16px;color:#ffedd5;box-shadow:0 8px 22px #7c2d1225}
+.cd-faults h2{font-size:20px;color:#fde68a!important}
+.cd-faults>p{color:#fed7aa;margin:7px 0 14px;font-size:12px}
+.cd-faults>p[role=alert]{background:#450a0a;color:#fecaca!important;border:1px solid #f87171;padding:10px;border-radius:8px}
+.cd-fault-card{padding:13px;border-radius:12px;background:linear-gradient(145deg,#431407,#7c2d12);border-color:#ea580c;border-top-width:3px;color:#ffedd5}
+.cd-fault-card>strong{color:#fde68a;font-size:13px;margin-bottom:6px}
+.cd-fault-card p{color:#fed7aa;font-size:12px;margin:8px 0}
+.cd-fault-card>p:first-of-type{color:#fda4af!important}
+.cd-fault-card label{color:#fdba74;font-size:12px;margin-top:8px}
+.cd-fault-card :is(input,textarea){background:#291208;color:#fff7ed;border-color:#c2410c;padding:7px!important;margin-top:4px;font-size:12px}
+.cd-fault-card textarea{min-height:60px}
+.cd-fault-card button{min-height:36px;padding:8px!important;font-size:12px;background:linear-gradient(100deg,#065f46,#047857)!important}
+.cd-notes{padding:16px;gap:10px;border-radius:14px;background:linear-gradient(135deg,#172554,#1e3a8a);border-color:#3b82f6;color:#dbeafe}
+.cd-notes h3,.cd-notes label{color:#bfdbfe}
+.cd-notes small{color:#a5f3fc}
+.cd-notes :is(input,textarea){background:#0f172a;color:#e0f2fe;border-color:#2563eb}
+.cd-notes textarea{min-height:65px}
+.cd-default-notice{padding:10px 13px;margin-top:16px;background:#172554;border-color:#2563eb;color:#bfdbfe;font-size:12px}
+@media(max-width:700px){.cd-hero{padding:18px}.cd-equipment-card{padding:14px}.cd-faults{padding:14px}}
