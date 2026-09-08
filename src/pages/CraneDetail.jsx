@@ -1,23 +1,10 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
+import CraneAnalytics from "../components/CraneAnalytics";
+import { SAFETY_KEYS, BRAKE_KEYS, checkLabel, inspectionIssues } from "../utils/craneData";
+
 const API = process.env.REACT_APP_API_URL;
-
-// चाबियाँ (Keys) पहले से तय की गईं ताकि डेटा खाली होने पर भी इनपुट्स स्क्रीन पर दिखें
-const SAFETY_KEYS = [
-  "craneHooter",
-  "mhUpDownLimitSwitch",
-  "ahUpDownLimitSwitch",
-  "crossTravelLimitSwitch",
-  "longTravelLimitSwitch"
-];
-
-const BRAKE_KEYS = [
-  "mainHoistBrakeGap",
-  "auxHoistBrakeGap",
-  "crossTravelBrakeGap",
-  "longTravelBrakeGap"
-];
 
 // 🎨 हिस्ट्री कार्ड्स के लिए 6 वाइब्रेंट कलर्स का एरे
 const historyColors = [
@@ -29,7 +16,6 @@ const historyColors = [
   "#c2410c"  // 🟧 Orange
 ];
 
-const checkLabel = key => key.replace(/([A-Z])/g, " $1").replace(/^./, c => c.toUpperCase());
 
 function CheckBadge({ value }) {
   const faulty = value === "Not OK" || value === "Outside Limit";
@@ -37,21 +23,6 @@ function CheckBadge({ value }) {
   return <span style={{ display: "inline-block", padding: "3px 8px", borderRadius: "6px",
     background: faulty ? "#fee2e2" : good ? "#dcfce7" : "#e5e7eb",
     color: faulty ? "#991b1b" : good ? "#166534" : "#374151", fontWeight: 700 }}>{value || "—"}</span>;
-}
-
-function inspectionIssues(record) {
-  if (record.recordType !== "inspection") return [];
-  const entries = [];
-  for (const [group, keys] of [["safetyChecks", SAFETY_KEYS], ["brakeChecks", BRAKE_KEYS]]) {
-    for (const key of keys) {
-      const value = record.inspectionData?.[group]?.[key];
-      if (value === "Not OK" || value === "Outside Limit") {
-        const issueKey = group + "_" + key;
-        entries.push({ issueKey, group, key, value, status: "Open", ...record.issues?.[issueKey] });
-      }
-    }
-  }
-  return entries;
 }
 
 function CraneDetail() {
@@ -72,6 +43,7 @@ function CraneDetail() {
   const [resolutionDrafts, setResolutionDrafts] = useState({});
   const [resolving, setResolving] = useState(null);
   const [historyError, setHistoryError] = useState("");
+  const [reportLoading, setReportLoading] = useState(false);
   const openIssues = history.flatMap(record => inspectionIssues(record)
     .filter(issue => issue.status !== "Resolved").map(issue => ({ ...issue, record })));
 
@@ -188,6 +160,20 @@ function CraneDetail() {
     }
   };
 
+  const exportCraneReport = async () => {
+    if (reportLoading) return;
+    setReportLoading(true);
+    try {
+      const responses = await Promise.all([fetch(`${API}/crane/${id}`), fetch(`${API}/crane-history/${id}`)]);
+      if (responses.some(response => !response.ok)) throw new Error("Could not load complete crane report data. Please retry.");
+      const [savedCrane, savedHistory] = await Promise.all(responses.map(response => response.json()));
+      if (!savedCrane._id || !Array.isArray(savedHistory)) throw new Error("Invalid crane report data");
+      const { downloadCraneReport } = await import("../utils/craneReport");
+      await downloadCraneReport({ crane: savedCrane, history: savedHistory });
+    } catch (error) { alert(error.message || "Report download failed"); }
+    finally { setReportLoading(false); }
+  };
+
   const handleCancel = () => {
     setCrane(originalCrane);
     setEditMode(false);
@@ -242,11 +228,11 @@ function CraneDetail() {
   return (
     <div style={{
       minHeight: "100vh",
-      padding: "40px",
+      padding: "clamp(14px, 3vw, 40px)",
       background: "linear-gradient(135deg,#1f4037,#99f2c8)",
       fontFamily: "system-ui, sans-serif"
     }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
         <button 
           onClick={() => navigate(-1)} 
           style={{ padding: "8px 16px", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: "bold" }}
@@ -254,7 +240,8 @@ function CraneDetail() {
           ⬅ Back
         </button>
 
-        <div>
+        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+          <button className="ca-report-button" onClick={exportCraneReport} disabled={reportLoading || saving || !!resolving}>{reportLoading ? "Preparing PDF…" : "↓ Download Crane Report"}</button>
           {!editMode ? (
             <button
               onClick={() => setEditMode(true)}
@@ -295,6 +282,8 @@ function CraneDetail() {
         {crane.plant} - {crane.craneNo}
       </h2>
 
+      <CraneAnalytics history={history} error={historyError} />
+
       {editMode && (
         <div style={{ background: "#fff", padding: "20px", borderRadius: "12px", display: "grid", gap: "12px" }}>
           <h3 style={{ margin: 0 }}>Inspection Notes</h3>
@@ -320,7 +309,7 @@ function CraneDetail() {
         </p>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "30px", marginTop: "30px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))", gap: "30px", marginTop: "30px" }}>
         
         {/* BASIC INFORMATION - Uneditable & Uppercase Labels */}
         <div
