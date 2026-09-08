@@ -28,6 +28,7 @@ function MotorDetail() {
   const [vibrationSaving, setVibrationSaving] = useState(false);
 
   const [motorHistory, setMotorHistory] = useState([]);
+  const [reportLoading, setReportLoading] = useState(false);
 
   /* GREASING (CRM ONLY) */
   const [showGreasingForm, setShowGreasingForm] = useState(false);
@@ -165,6 +166,23 @@ function MotorDetail() {
     alert("Greasing saved ✅");
   };
 
+  const exportReport = async () => {
+    if (reportLoading) return;
+    setReportLoading(true);
+    try {
+      const responses = await Promise.all([
+        fetch(`${API}/motors/${id}`), fetch(`${API}/motor-history/${id}`),
+        fetch(`${API}/greasing/${id}`), fetch(`${API}/vibration-test/${id}`)
+      ]);
+      if (responses.some(response => !response.ok)) throw new Error("Report data could not be loaded. Please retry.");
+      const [currentMotor, changes, greasing, vibration] = await Promise.all(responses.map(response => response.json()));
+      if (!currentMotor._id || ![changes,greasing,vibration].every(Array.isArray)) throw new Error("Incomplete report data. Please retry.");
+      const { downloadMotorReport } = await import("../utils/motorReport");
+      await downloadMotorReport({motor:currentMotor,motorHistory:changes,greasingHistory:greasing,vibrationHistory:vibration});
+    } catch (error) { alert(error.message || "Report download failed"); }
+    finally { setReportLoading(false); }
+  };
+
   if (error) return <div className="md-page"><div className="md-state"><h2>Unable to load motor</h2><p>{error}</p><button className="md-button" onClick={() => navigate("/")}>← Back to dashboard</button></div></div>;
   if (!motor) return <div className="md-page"><div className="md-state" role="status">Loading motor details…</div></div>;
 
@@ -183,7 +201,10 @@ function MotorDetail() {
       <div className="md-shell">
         <nav className="md-nav">
           <button className="md-back" onClick={() => navigate("/")}>← Dashboard</button>
-          <span>Wider Electrical <span className="md-nav-dot">/</span> Motor Details</span>
+          <div className="md-nav-tools">
+            <button className="md-back" onClick={() => navigate("/motors/search?plant="+encodeURIComponent(motor.plant||""))}>🔍 Search Motors</button>
+            <button className="md-report-button" disabled={reportLoading} onClick={exportReport}>{reportLoading ? "Preparing PDF…" : "↓ Download Motor Report"}</button>
+          </div>
         </nav>
         <header className="md-hero">
           <div>

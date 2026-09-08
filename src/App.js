@@ -46,6 +46,8 @@ import UnsafeRaised from "./pages/UnsafeRaised";
 import ACList from "./pages/ACList";
 import ACDetail from "./pages/ACDetail";
 
+import MotorSearch from "./pages/MotorSearch";
+
 function App() {
   return (
     <Router>
@@ -53,6 +55,7 @@ function App() {
 
         {/* ===== MAIN DASHBOARD ===== */}
         <Route path="/" element={<SteelPlantDashboard />} />
+        <Route path="/motors/search" element={<MotorSearch />} />
 
         {/* ===== CGL ===== */}
         <Route path="/cgl" element={<CGLDashboard />} />

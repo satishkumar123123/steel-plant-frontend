@@ -19,6 +19,7 @@ function SteelPlantDashboard() {
         };
 
   const items = [
+    { name: "motor-search", content: "🔍 Search Motors & Reports", color: "#c7d2fe", path: "/motors/search", small: true },
     {
       name: "cgl",
       content: (

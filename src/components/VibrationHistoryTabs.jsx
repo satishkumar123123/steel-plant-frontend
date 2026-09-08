@@ -1,18 +1,8 @@
 import { useId, useState } from "react";
 import "./VibrationHistoryTabs.css";
 
-export function latestVibrations(records) {
-  return (Array.isArray(records) ? records : []).filter(row =>
-    row.testDate && Number.isFinite(Date.parse(row.testDate)) &&
-    ["number", "string"].includes(typeof row.vibrationValue) &&
-    String(row.vibrationValue).trim() !== "" &&
-    Number.isFinite(Number(row.vibrationValue)) && Number(row.vibrationValue) >= 0
-  ).map(row => ({ ...row, vibrationValue: Number(row.vibrationValue) }))
-    .sort((a, b) => Date.parse(b.testDate) - Date.parse(a.testDate) ||
-      (Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0) ||
-      String(b._id || "").localeCompare(String(a._id || "")))
-    .slice(0, 15).reverse();
-}
+import { latestVibrations, vibrationSummary, formatValue } from "../utils/vibrationData";
+export { latestVibrations } from "../utils/vibrationData";
 
 const colors = ["#2563eb", "#db2777", "#7c3aed", "#d97706", "#059669", "#0891b2"];
 const dateText = date => new Date(date).toLocaleDateString("en-GB", {
@@ -85,6 +75,7 @@ export default function VibrationHistoryTabs({ records, loading = false, error =
   const id = useId();
   const tabs = [{ key: "history", label: "📋 History" }, { key: "bar", label: "📊 Bar Chart" }, { key: "line", label: "📈 Line Chart" }];
   const points = latestVibrations(records);
+  const summary = vibrationSummary(records);
   const invalidCount = records.filter(row => latestVibrations([row]).length === 0).length;
   return (
     <section className="vht-section">
@@ -104,6 +95,14 @@ export default function VibrationHistoryTabs({ records, loading = false, error =
             }}>{tab.label}</button>)}
         </div>
       </div>
+      {!loading && !error && points.length > 0 && <>
+        <div className="vht-summary">
+          <div><span>Latest reading</span><strong>{formatValue(summary.latest)} <small>mm/s</small></strong></div>
+          <div><span>Change vs previous</span><strong>{summary.change===null?'Not enough readings':(summary.change>0?'+':'')+formatValue(summary.change)+' mm/s'}</strong><small>{summary.percent===null?(summary.previous===0?'Percentage unavailable: previous reading is zero':'Requires two readings'):(summary.percent>0?'+':'')+formatValue(summary.percent)+'%'}</small></div>
+          <div><span>Average · {points.length} readings</span><strong>{formatValue(summary.average)} <small>mm/s</small></strong></div>
+          <div><span>Maximum · {points.length} readings</span><strong>{formatValue(summary.maximum)} <small>mm/s</small></strong></div>
+        </div><p className="vht-hint">Summary uses the latest {points.length} valid readings by test date (maximum 15).</p>
+      </>}
       <div id={id + "-panel"} role="tabpanel" aria-labelledby={id + "-" + active} tabIndex={0}>
         {loading ? <p role="status">Loading vibration readings…</p> : error ? <p className="vht-error" role="alert">{error}</p> :
           active === "history" ? children :
@@ -115,4 +114,3 @@ export default function VibrationHistoryTabs({ records, loading = false, error =
     </section>
   );
 }
-
