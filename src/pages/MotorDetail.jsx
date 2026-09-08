@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import VibrationHistoryTabs from "../components/VibrationHistoryTabs";
 const API = process.env.REACT_APP_API_URL;
 
 // Dynamic Colors Arrays for History Cards
@@ -31,6 +32,9 @@ function MotorDetail() {
   const [testedBy, setTestedBy] = useState("");
   const [remark, setRemark] = useState("");
   const [vibrationHistory, setVibrationHistory] = useState([]);
+  const [vibrationError, setVibrationError] = useState("");
+  const [vibrationLoading, setVibrationLoading] = useState(false);
+  const [vibrationSaving, setVibrationSaving] = useState(false);
 
   const [motorHistory, setMotorHistory] = useState([]);
 
@@ -54,9 +58,16 @@ function MotorDetail() {
   }, [id]);
 
   const loadVibrationHistory = useCallback(async () => {
-    const res = await fetch(`${API}/vibration-test/${id}`);
-    const data = await res.json();
-    setVibrationHistory(Array.isArray(data) ? data : []);
+    setVibrationLoading(true); setVibrationError("");
+    try {
+      const res = await fetch(`${API}/vibration-test/${id}`);
+      if (!res.ok) throw new Error("Could not load vibration history. Please reload.");
+      const data = await res.json();
+      if (!Array.isArray(data)) throw new Error("Invalid vibration history");
+      setVibrationHistory(data);
+    } catch (error) {
+      setVibrationHistory([]); setVibrationError(error.message);
+    } finally { setVibrationLoading(false); }
   }, [id]);
 
   const loadMotorHistory = useCallback(async () => {
@@ -112,32 +123,25 @@ function MotorDetail() {
 
   /* SAVE VIBRATION */
   const saveVibration = async () => {
-    if (!vibrationValue || !testDate) {
-      alert("Enter vibration value and date");
+    if (vibrationSaving) return;
+    if (String(vibrationValue).trim() === "" || !Number.isFinite(Number(vibrationValue)) ||
+        Number(vibrationValue) < 0 || !testDate || !Number.isFinite(Date.parse(testDate))) {
+      alert("Enter a valid non-negative vibration value and test date");
       return;
     }
-
-    await fetch(`${API}/vibration-test`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        motorId: motor._id,
-        vibrationValue: Number(vibrationValue),
-        testDate,
-        testedBy,
-        remark,
-      }),
-    });
-
-    await loadVibrationHistory();
-
-    setShowVibrationForm(false);
-    setVibrationValue("");
-    setTestDate("");
-    setTestedBy("");
-    setRemark("");
-
-    alert("Vibration saved ✅");
+    setVibrationSaving(true);
+    try {
+      const res = await fetch(`${API}/vibration-test`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ motorId: motor._id, vibrationValue: Number(vibrationValue), testDate, testedBy, remark })
+      });
+      if (!res.ok) throw new Error("Vibration could not be saved. Please try again.");
+      setShowVibrationForm(false);
+      setVibrationValue(""); setTestDate(""); setTestedBy(""); setRemark("");
+      await loadVibrationHistory();
+      alert("Vibration saved ✅");
+    } catch (error) { alert(error.message); }
+    finally { setVibrationSaving(false); }
   };
 
   /* SAVE GREASING */
@@ -317,7 +321,7 @@ function MotorDetail() {
         {showVibrationForm && (
           <div>
             <br />
-            <input type="number" placeholder="Vibration"
+            <input type="number" min="0" step="any" placeholder="Vibration (mm/s)"
               value={vibrationValue}
               onChange={(e) => setVibrationValue(e.target.value)} />
             <br /><br />
@@ -335,6 +339,7 @@ function MotorDetail() {
             <br /><br />
             <button
               onClick={saveVibration}
+              disabled={vibrationSaving}
               style={btn("linear-gradient(45deg,#8e24aa,#d81b60)")}>
               Save
             </button>
@@ -388,7 +393,7 @@ function MotorDetail() {
 
       {/* VIBRATION HISTORY GRID */}
       <div style={card}>
-        <h3 style={{ marginTop: 0 }}>📊 Vibration History</h3>
+        <VibrationHistoryTabs key={id} records={vibrationHistory} loading={vibrationLoading} error={vibrationError}>
         {vibrationHistory.length === 0 ? (
           <p style={{ color: "#777" }}>No vibration history</p>
         ) : (
@@ -405,6 +410,7 @@ function MotorDetail() {
             ))}
           </div>
         )}
+        </VibrationHistoryTabs>
       </div>
 
     </div>
