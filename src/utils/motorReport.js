@@ -39,7 +39,13 @@ export async function buildMotorReport({motor,motorHistory=[],greasingHistory=[]
       while(offset<lines){if(y+30>H-58){newPage(title+' - continued');drawHeader();}
         const capacity=Math.max(1,Math.floor((H-58-y-14)/12));const count=Math.min(capacity,lines-offset);const height=count*12+14;
         rect(M,y,CW,height,index%2===0?'#f5f3ff':'#ffffff');let x=M;
-        cells.forEach((cell,i)=>{cell.slice(offset,offset+count).forEach((value,n)=>text(value,x+8,y+7+n*12,8.5,i===0?'#6d28d9':'#334155'));x+=widths[i];});
+        for (let i = 0; i < cells.length; i++) {
+          const cellLines = cells[i].slice(offset, offset + count);
+          for (let n = 0; n < cellLines.length; n++) {
+            text(cellLines[n], x + 8, y + 7 + n * 12, 8.5, i === 0 ? '#6d28d9' : '#334155');
+          }
+          x += widths[i];
+        }
         line(M,y+height,W-M,y+height);y+=height;offset+=count;
       }
     });
@@ -49,7 +55,7 @@ export async function buildMotorReport({motor,motorHistory=[],greasingHistory=[]
   rect(M,y,CW,94,'#172554');text('EQUIPMENT PROFILE',M+18,y+15,9,'#a5f3fc',bold);
   const name=wrap(motor.motorName||motor.name||motor.position||'Motor',CW-36,18,bold);name.slice(0,2).forEach((s,i)=>text(s,M+18,y+34+i*23,18,'#ffffff',bold));y+=114;
   const info=[['Production line',motor.plant],['Serial number',motor.serialNo],['Motor name / position',motor.motorName||motor.name||motor.position],['Area / location',motor.area||motor.location],['Speed (RPM)',motor.rpm],['Recorded status',motor.status],['Motor ID',motor._id]];
-  for(const [key,value] of info){const lines=wrap(value,CW-155,10);const height=Math.max(30,lines.length*14+12);if(y+height>H-75)newPage('Motor overview - continued');rect(M,y,CW,height,'#f8fafc');text(key,M+12,y+9,9,'#6d28d9',bold);lines.forEach((s,i)=>text(s,M+155,y+8+i*14,10));y+=height+3;}
+  for(const [key,value] of info){const lines=wrap(value,CW-155,10);const height=Math.max(30,lines.length*14+12);if(y+height>H-75)newPage('Motor overview - continued');rect(M,y,CW,height,'#f8fafc');text(key,M+12,y+9,9,'#6d28d9',bold);for (let i = 0; i < lines.length; i++) { text(lines[i], M+155, y+8+i*14, 10); }y+=height+3;}
   y+=18;if(y+190>H-60)newPage('Vibration snapshot');label('Vibration snapshot');
   const stats=[['Latest',num(summary.latest)+' mm/s'],['Average',num(summary.average)+' mm/s'],['Maximum',num(summary.maximum)+' mm/s']];
   stats.forEach(([key,value],i)=>{const x=M+i*(CW/3);rect(x,y,CW/3-8,62,['#eff6ff','#f5f3ff','#ecfdf5'][i]);text(key,x+12,y+10,9,palette[i],bold);text(value,x+12,y+30,14,palette[i],bold);});y+=78;
