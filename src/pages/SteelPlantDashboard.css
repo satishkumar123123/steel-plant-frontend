@@ -23,3 +23,5 @@
  .apollo-report-content{width:180px}.apollo-report strong{font-size:21px}
 }
 @media(min-width:851px) and (max-width:1150px){.apollo-report{width:180px;height:180px}.apollo-report-content{width:180px}.apollo-report strong{font-size:21px}}
+
+.apollo-brand h1{display:flex;flex-wrap:wrap;justify-content:center;column-gap:clamp(10px,1.5vw,22px);row-gap:5px}.apollo-crane{--panel:#0f5964;--edge:#2dd4bf;--base:#07363d;background:linear-gradient(120deg,#0f5964,#134e4a)}
