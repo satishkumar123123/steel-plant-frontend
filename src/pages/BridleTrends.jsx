@@ -3,7 +3,6 @@ import {Link} from 'react-router-dom';
 import {bridleGroups,matchBridle} from '../utils/bridleData';
 import {latestVibrations,formatValue} from '../utils/vibrationData';
 import './BridleTrends.css';
-import BridleComparison from '../components/BridleComparison';
 import {bridleEntries,insightSummary} from '../utils/bridleInsights';
 const API=process.env.REACT_APP_API_URL;
 const colors=['#22d3ee','#f472b6','#a78bfa','#fbbf24','#34d399','#fb923c'];
@@ -21,7 +20,7 @@ function Chart({points,type,ceiling,label}){
 function Group({group,motors,readings,type,index}){
   const pair=['A','B'].map(position=>({position,matches:motors.filter(m=>matchBridle(m,group.plant,group.bridle,position))}));
   const ceiling=Math.max(1,...pair.flatMap(p=>p.matches.length===1?(readings[p.matches[0]._id]?.points||[]).map(r=>r.vibrationValue):[]));
-  return <article className={'bt-group bt-tone-'+index%6}><header><h3>{group.bridle==='HBR'?'Hot Bridle · HBR':'Bridle '+group.bridle}</h3><span>{group.plant} · {group.bridle}A / {group.bridle}B</span></header><BridleComparison entries={bridleEntries(motors,readings).filter(e=>e.plant===group.plant&&e.bridle===group.bridle)}/><div className="bt-pair">{pair.map(({position,matches})=>{const motor=matches[0],data=motor&&readings[motor._id],points=data?.points||[];
+  return <article className={'bt-group bt-tone-'+index%6}><header><h3>{group.bridle==='HBR'?'Hot Bridle · HBR':'Bridle '+group.bridle}</h3><span>{group.plant} · {group.bridle}A / {group.bridle}B</span></header><div className="bt-pair">{pair.map(({position,matches})=>{const motor=matches[0],data=motor&&readings[motor._id],points=data?.points||[];
     return <section className={'bt-motor bt-motor-'+position} key={position}><h4>{group.bridle}{position}{matches.length===1&&<Link to={'/motor/'+motor._id}>Details ↗</Link>}</h4>{matches.length===0?<p className="bt-message">Motor not found in directory.</p>:matches.length>1?<p className="bt-message" role="alert">Multiple motors match this position. Check the motor directory.</p>:<><p className="bt-serial">Serial · {motor.serialNo||'Not recorded'}</p>{!data?<p role="status">Loading readings…</p>:data.error?<p className="bt-message" role="alert">{data.error}</p>:!points.length?<p className="bt-message">No valid vibration readings.</p>:<><div className="bt-latest"><strong>{formatValue(points[points.length-1].vibrationValue)} <small>mm/s</small></strong><span>Latest · {date(points[points.length-1].testDate)}</span>{Date.now()-Date.parse(points[points.length-1].testDate)>30*86400000&&<small className="bt-old">Older than 30 days</small>}</div><Chart points={points} type={type} ceiling={ceiling} label={`${group.plant} ${group.bridle}${position}`}/>{data.excluded>0&&<small>{data.excluded} invalid record(s) excluded.</small>}</>}</>}</section>;
   })}</div><p className="bt-foot">A &amp; B use the same vertical scale · Oldest → newest · Each motor has its own test dates</p></article>;
 }
