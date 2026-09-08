@@ -47,6 +47,7 @@ import ACList from "./pages/ACList";
 import ACDetail from "./pages/ACDetail";
 
 import MotorSearch from "./pages/MotorSearch";
+import BridleTrends from "./pages/BridleTrends";
 
 function App() {
   return (
@@ -56,6 +57,7 @@ function App() {
         {/* ===== MAIN DASHBOARD ===== */}
         <Route path="/" element={<SteelPlantDashboard />} />
         <Route path="/motors/search" element={<MotorSearch />} />
+        <Route path="/motors/bridle-trends" element={<BridleTrends />} />
 
         {/* ===== CGL ===== */}
         <Route path="/cgl" element={<CGLDashboard />} />
