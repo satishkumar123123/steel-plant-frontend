@@ -1,17 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import VibrationHistoryTabs from "../components/VibrationHistoryTabs";
+import "./MotorDetail.css";
 const API = process.env.REACT_APP_API_URL;
-
-// Dynamic Colors Arrays for History Cards
-const colors = [
-  "linear-gradient(135deg, #667eea, #764ba2)",
-  "linear-gradient(135deg, #ff512f, #dd2476)",
-  "linear-gradient(135deg, #11998e, #38ef7d)",
-  "linear-gradient(135deg, #ff9800, #ff5722)",
-  "linear-gradient(135deg, #00b4db, #0083b0)",
-  "linear-gradient(135deg, #8e24aa, #d81b60)"
-];
 
 function MotorDetail() {
   const { id } = useParams();
@@ -174,246 +165,109 @@ function MotorDetail() {
     alert("Greasing saved ✅");
   };
 
-  if (error) {
-    return (
-      <div style={{ padding: "20px" }}>
-        <button onClick={() => navigate("/")}>⬅ Back</button>
-        <h3 style={{ color: "red" }}>{error}</h3>
-      </div>
-    );
-  }
+  if (error) return <div className="md-page"><div className="md-state"><h2>Unable to load motor</h2><p>{error}</p><button className="md-button" onClick={() => navigate("/")}>← Back to dashboard</button></div></div>;
+  if (!motor) return <div className="md-page"><div className="md-state" role="status">Loading motor details…</div></div>;
 
-  if (!motor) return <p style={{ padding: "20px" }}>Loading...</p>;
-
-  // Styles
-  const card = {
-    background: "#ffffff",
-    padding: "20px",
-    borderRadius: "15px",
-    boxShadow: "0 8px 25px rgba(0,0,0,0.15)",
-    marginBottom: "25px"
-  };
-
-  const btn = (gradient) => ({
-    background: gradient,
-    color: "#fff",
-    border: "none",
-    padding: "8px 14px",
-    borderRadius: "8px",
-    fontWeight: "bold",
-    cursor: "pointer",
-    marginTop: "10px"
-  });
-
-  const gridLayout = {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
-    gap: "20px",
-    marginTop: "15px"
-  };
-
-  const historyCard = (index) => ({
-    background: colors[index % colors.length],
-    padding: "15px",
-    borderRadius: "10px",
-    color: "white",
-    boxShadow: "0 4px 15px rgba(0,0,0,0.1)"
-  });
+  const status = String(motor.status || "Unknown");
+  const statusTone = /^(running|ok)$/i.test(status) ? "good" : /^(stopped|breakdown)$/i.test(status) ? "bad" : "neutral";
+  const fields = [
+    ["Production line", motor.plant, "blue"], ["Serial number", motor.serialNo, "purple"],
+    ["Speed · RPM", motor.rpm, "orange"], ["Status", status, statusTone],
+    ["Area / Location", motor.area || motor.location, "teal"],
+    ["Motor / Position", motor.motorName || motor.name || motor.position, "pink"]
+  ];
+  const dateText = value => value && Number.isFinite(Date.parse(value)) ? new Date(value).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—";
 
   return (
-    <div style={{
-      minHeight: "100vh",
-      padding: "30px",
-      background: "linear-gradient(135deg,#667eea,#764ba2)"
-    }}>
-
-      <button onClick={() => navigate("/")}
-        style={btn("linear-gradient(45deg,#ff6a00,#ee0979)")}>
-        ⬅ Back
-      </button>
-
-      {/* CURRENT MOTOR */}
-      <div style={{ ...card, borderLeft: "8px solid #00c853", marginTop: "20px" }}>
-        <h2 style={{ color: "#2e7d32", marginTop: 0 }}>🟢 Current Motor</h2>
-        <p><b>Plant:</b> {motor.plant}</p>
-        <p><b>Serial:</b> {motor.serialNo}</p>
-        <p><b>RPM:</b> {motor.rpm}</p>
-        <p><b>Status:</b> {motor.status}</p>
-      </div>
-
-      {/* 1. CHANGE MOTOR SECTION */}
-      <div style={card}>
-        <button
-          onClick={() => setShowChangeForm(!showChangeForm)}
-          style={btn("linear-gradient(45deg,#ff512f,#dd2476)")}>
-          🔁 Change Motor
-        </button>
-
-        {showChangeForm && (
+    <main className="md-page">
+      <div className="md-shell">
+        <nav className="md-nav">
+          <button className="md-back" onClick={() => navigate("/")}>← Dashboard</button>
+          <span>Wider Electrical <span className="md-nav-dot">/</span> Motor Details</span>
+        </nav>
+        <header className="md-hero">
           <div>
-            <br />
-            <input placeholder="New Serial"
-              value={newSerial}
-              onChange={(e) => setNewSerial(e.target.value)} />
-            <br /><br />
-            <input placeholder="New RPM"
-              value={newRpm}
-              onChange={(e) => setNewRpm(e.target.value)} />
-            <br /><br />
-            <input placeholder="Reason"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)} />
-            <br /><br />
-            <button
-              onClick={handleChangeMotor}
-              disabled={loading}
-              style={btn("linear-gradient(45deg,#00c853,#43a047)")}>
-              {loading ? "Saving..." : "Save"}
-            </button>
+            <div className="md-eyebrow">⚙ EQUIPMENT MAINTENANCE</div>
+            <h1><span>Motor</span> <span>Details</span></h1>
+            <p>{motor.plant || "Plant"} · {motor.motorName || motor.name || motor.position || "Motor"}{motor.area ? " · " + motor.area : ""}</p>
           </div>
-        )}
+          <div className="md-hero-badge"><span className={"md-status md-status-" + statusTone}>{status}</span><small>Recorded motor status</small></div>
+        </header>
+
+        <section className="md-overview" aria-label="Current motor">
+          {fields.map(([label, value, tone]) => <div className={"md-stat md-tone-" + tone} key={label}>
+            <span>{label}</span><strong>{value ?? "—"}</strong>
+          </div>)}
+        </section>
+
+        <div className="md-section-heading"><div><span className="md-kicker">MAINTENANCE DESK</span><h2>Keep every update in one place</h2></div><span className="md-subtle">Choose an action below</span></div>
+        <section className="md-actions" aria-label="Maintenance actions">
+          <article className="md-action md-change">
+            <div className="md-action-top"><span className="md-icon">↻</span><span className="md-action-tag">REPLACEMENT</span></div>
+            <h3>Change <span>Motor</span></h3><p>Record the new serial, speed and replacement reason.</p>
+            <button className="md-button" aria-expanded={showChangeForm} aria-controls="md-change-form" onClick={() => setShowChangeForm(!showChangeForm)}>{showChangeForm ? "− Close form" : "+ Change Motor"}</button>
+            {showChangeForm && <div className="md-form" id="md-change-form">
+              <label>New serial number<input placeholder="Enter new serial" value={newSerial} onChange={e => setNewSerial(e.target.value)} /></label>
+              <label>New RPM<input placeholder="Enter speed" value={newRpm} onChange={e => setNewRpm(e.target.value)} /></label>
+              <label>Replacement reason<input placeholder="Why was the motor changed?" value={reason} onChange={e => setReason(e.target.value)} /></label>
+              <button className="md-button md-save" onClick={handleChangeMotor} disabled={loading}>{loading ? "Saving…" : "Save replacement"}</button>
+            </div>}
+          </article>
+          <article className="md-action md-grease">
+            <div className="md-action-top"><span className="md-icon">◈</span><span className="md-action-tag">LUBRICATION</span></div>
+            <h3>Add <span>Greasing</span></h3><p>Log lubrication work, grease type and technician details.</p>
+            <button className="md-button" aria-expanded={showGreasingForm} aria-controls="md-grease-form" onClick={() => setShowGreasingForm(!showGreasingForm)}>{showGreasingForm ? "− Close form" : "+ Add Greasing"}</button>
+            {showGreasingForm && <div className="md-form" id="md-grease-form">
+              <label>Greasing date<input type="date" value={greasingDate} onChange={e => setGreasingDate(e.target.value)} /></label>
+              <label>Grease type<input placeholder="Enter grease type" value={greaseType} onChange={e => setGreaseType(e.target.value)} /></label>
+              <label>Greased by<input placeholder="Technician name" value={greasedBy} onChange={e => setGreasedBy(e.target.value)} /></label>
+              <label>Remark<input placeholder="Additional notes" value={greasingRemark} onChange={e => setGreasingRemark(e.target.value)} /></label>
+              <button className="md-button md-save" onClick={saveGreasing}>Save greasing</button>
+            </div>}
+          </article>
+          <article className="md-action md-vibration">
+            <div className="md-action-top"><span className="md-icon">∿</span><span className="md-action-tag">CONDITION MONITORING</span></div>
+            <h3>Vibration <span>Test</span></h3><p>Add a reading and explore its trend in history and charts.</p>
+            <button className="md-button" aria-expanded={showVibrationForm} aria-controls="md-vibration-form" onClick={() => setShowVibrationForm(!showVibrationForm)}>{showVibrationForm ? "− Close form" : "+ Add Vibration Test"}</button>
+            {showVibrationForm && <div className="md-form" id="md-vibration-form">
+              <label>Vibration · mm/s<input type="number" min="0" step="any" placeholder="e.g. 2.5" value={vibrationValue} onChange={e => setVibrationValue(e.target.value)} /></label>
+              <label>Test date<input type="date" value={testDate} onChange={e => setTestDate(e.target.value)} /></label>
+              <label>Tested by<input placeholder="Technician name" value={testedBy} onChange={e => setTestedBy(e.target.value)} /></label>
+              <label>Remark<input placeholder="Additional notes" value={remark} onChange={e => setRemark(e.target.value)} /></label>
+              <button className="md-button md-save" onClick={saveVibration} disabled={vibrationSaving}>{vibrationSaving ? "Saving…" : "Save vibration"}</button>
+            </div>}
+          </article>
+        </section>
+
+        <div className="md-section-heading"><div><span className="md-kicker">EQUIPMENT TIMELINE</span><h2>Maintenance history</h2></div></div>
+        <section className="md-history-section md-history-change">
+          <div className="md-history-heading"><h3>↻ Motor Change History</h3><span>{motorHistory.length} records</span></div>
+          {motorHistory.length === 0 ? <p className="md-empty">No motor replacement recorded yet.</p> :
+            <div className="md-history-grid">{motorHistory.map((h,i) => <article className={"md-record md-record-" + i % 6} key={h._id || i}>
+              <div className="md-record-date"><span>REPLACEMENT</span><time>{dateText(h.changeDate)}</time></div>
+              <dl><div><dt>Old serial</dt><dd>{h.oldSerialNo || "—"}</dd></div><div><dt>Old RPM</dt><dd>{h.oldRpm ?? "—"}</dd></div><div><dt>Reason</dt><dd>{h.reason || "—"}</dd></div></dl>
+            </article>)}</div>}
+        </section>
+        <section className="md-history-section md-history-grease">
+          <div className="md-history-heading"><h3>◈ Greasing History</h3><span>{greasingHistory.length} records</span></div>
+          {greasingHistory.length === 0 ? <p className="md-empty">No greasing activity recorded yet.</p> :
+            <div className="md-history-grid">{greasingHistory.map((g,i) => <article className={"md-record md-record-" + (i + 2) % 6} key={g._id || i}>
+              <div className="md-record-date"><span>LUBRICATION</span><time>{dateText(g.greasingDate)}</time></div>
+              <dl><div><dt>Grease type</dt><dd>{g.greaseType || "—"}</dd></div><div><dt>Greased by</dt><dd>{g.greasedBy || "—"}</dd></div>{g.remark && <div><dt>Remark</dt><dd>{g.remark}</dd></div>}</dl>
+            </article>)}</div>}
+        </section>
+        <section className="md-history-section md-history-vibration">
+          <VibrationHistoryTabs key={id} records={vibrationHistory} loading={vibrationLoading} error={vibrationError}>
+            {vibrationHistory.length === 0 ? <p className="md-empty">No vibration tests recorded yet.</p> :
+              <div className="md-history-grid">{vibrationHistory.map((v,i) => <article className={"md-record md-record-" + (i + 1) % 6} key={v._id || i}>
+                <div className="md-record-date"><span>VIBRATION TEST</span><time>{dateText(v.testDate)}</time></div>
+                <div className="md-reading">{v.vibrationValue} <small>mm/s</small></div>
+                <dl><div><dt>Tested by</dt><dd>{v.testedBy || "N/A"}</dd></div>{v.remark && <div><dt>Remark</dt><dd>{v.remark}</dd></div>}</dl>
+              </article>)}</div>}
+          </VibrationHistoryTabs>
+        </section>
       </div>
-
-      {/* 2. ADD GREASING SECTION */}
-      <div style={card}>
-        <button
-          onClick={() => setShowGreasingForm(!showGreasingForm)}
-          style={btn("linear-gradient(45deg,#ff9800,#ff5722)")}>
-          🛢 Add Greasing
-        </button>
-
-        {showGreasingForm && (
-          <div>
-            <br />
-            <input type="date"
-              value={greasingDate}
-              onChange={(e) => setGreasingDate(e.target.value)} />
-            <br /><br />
-            <input placeholder="Grease Type"
-              value={greaseType}
-              onChange={(e) => setGreaseType(e.target.value)} />
-            <br /><br />
-            <input placeholder="Greased By"
-              value={greasedBy}
-              onChange={(e) => setGreasedBy(e.target.value)} />
-            <br /><br />
-            <input placeholder="Remark"
-              value={greasingRemark}
-              onChange={(e) => setGreasingRemark(e.target.value)} />
-            <br /><br />
-            <button
-              onClick={saveGreasing}
-              style={btn("linear-gradient(45deg,#4caf50,#2e7d32)")}>
-              Save Greasing
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* 3. ADD VIBRATION SECTION */}
-      <div style={card}>
-        <button
-          onClick={() => setShowVibrationForm(!showVibrationForm)}
-          style={btn("linear-gradient(45deg,#2196f3,#21cbf3)")}>
-          📈 Add Vibration Test
-        </button>
-
-        {showVibrationForm && (
-          <div>
-            <br />
-            <input type="number" min="0" step="any" placeholder="Vibration (mm/s)"
-              value={vibrationValue}
-              onChange={(e) => setVibrationValue(e.target.value)} />
-            <br /><br />
-            <input type="date"
-              value={testDate}
-              onChange={(e) => setTestDate(e.target.value)} />
-            <br /><br />
-            <input placeholder="Tested By"
-              value={testedBy}
-              onChange={(e) => setTestedBy(e.target.value)} />
-            <br /><br />
-            <input placeholder="Remark"
-              value={remark}
-              onChange={(e) => setRemark(e.target.value)} />
-            <br /><br />
-            <button
-              onClick={saveVibration}
-              disabled={vibrationSaving}
-              style={btn("linear-gradient(45deg,#8e24aa,#d81b60)")}>
-              Save
-            </button>
-          </div>
-        )}
-      </div>
-
-      <hr style={{ margin: "40px 0", border: "1px dashed rgba(255,255,255,0.3)" }} />
-
-      {/* MOTOR CHANGE HISTORY GRID */}
-      <div style={card}>
-        <h3 style={{ marginTop: 0 }}>🔁 Motor Change History</h3>
-        {motorHistory.length === 0 ? (
-          <p style={{ color: "#777" }}>No history</p>
-        ) : (
-          <div style={gridLayout}>
-            {motorHistory.map((h, i) => (
-              <div key={i} style={historyCard(i)}>
-                <p style={{ margin: "0 0 8px 0" }}><b>Old Serial:</b> {h.oldSerialNo}</p>
-                <p style={{ margin: "0 0 8px 0" }}><b>Old RPM:</b> {h.oldRpm}</p>
-                <p style={{ margin: "0 0 8px 0" }}><b>Reason:</b> {h.reason}</p>
-                <p style={{ margin: "0", fontSize: "0.85rem", opacity: 0.9 }}>
-                  <b>Date:</b> {new Date(h.changeDate).toLocaleDateString()}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* GREASING HISTORY GRID */}
-      <div style={card}>
-        <h3 style={{ marginTop: 0 }}>🛢 Greasing History</h3>
-        {greasingHistory.length === 0 ? (
-          <p style={{ color: "#777" }}>No greasing history</p>
-        ) : (
-          <div style={gridLayout}>
-            {greasingHistory.map((g, i) => (
-              <div key={i} style={historyCard(i)}>
-                <p style={{ margin: "0 0 8px 0" }}><b>Type:</b> {g.greaseType}</p>
-                <p style={{ margin: "0 0 8px 0" }}><b>By:</b> {g.greasedBy}</p>
-                {g.remark && <p style={{ margin: "0 0 8px 0" }}><b>Rem:</b> {g.remark}</p>}
-                <p style={{ margin: "0", fontSize: "0.85rem", opacity: 0.9 }}>
-                  <b>Date:</b> {new Date(g.greasingDate).toLocaleDateString()}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* VIBRATION HISTORY GRID */}
-      <div style={card}>
-        <VibrationHistoryTabs key={id} records={vibrationHistory} loading={vibrationLoading} error={vibrationError}>
-        {vibrationHistory.length === 0 ? (
-          <p style={{ color: "#777" }}>No vibration history</p>
-        ) : (
-          <div style={gridLayout}>
-            {vibrationHistory.map((v, i) => (
-              <div key={i} style={historyCard(i)}>
-                <p style={{ margin: "0 0 8px 0", fontSize: "1.2rem" }}><b>{v.vibrationValue} mm/s</b></p>
-                <p style={{ margin: "0 0 8px 0" }}><b>By:</b> {v.testedBy || "N/A"}</p>
-                {v.remark && <p style={{ margin: "0 0 8px 0" }}><b>Rem:</b> {v.remark}</p>}
-                <p style={{ margin: "0", fontSize: "0.85rem", opacity: 0.9 }}>
-                  <b>Date:</b> {new Date(v.testDate).toLocaleDateString()}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
-        </VibrationHistoryTabs>
-      </div>
-
-    </div>
+    </main>
   );
 }
 
