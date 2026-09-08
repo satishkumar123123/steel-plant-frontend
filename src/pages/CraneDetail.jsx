@@ -4,18 +4,9 @@ import { useParams, useNavigate } from "react-router-dom";
 import CraneAnalytics from "../components/CraneAnalytics";
 import { SAFETY_KEYS, BRAKE_KEYS, checkLabel, inspectionIssues } from "../utils/craneData";
 
+import "./CraneDetail.css";
+
 const API = process.env.REACT_APP_API_URL;
-
-// 🎨 हिस्ट्री कार्ड्स के लिए 6 वाइब्रेंट कलर्स का एरे
-const historyColors = [
-  "#1e3a8a", // 🟦 Dark Blue
-  "#b91c1c", // 🟥 Red
-  "#047857", // 🟩 Green
-  "#b45309", // 🟨 Amber/Yellow
-  "#6d28d9", // 🟪 Purple
-  "#c2410c"  // 🟧 Orange
-];
-
 
 function CheckBadge({ value }) {
   const faulty = value === "Not OK" || value === "Outside Limit";
@@ -35,7 +26,6 @@ function CraneDetail() {
   const [editMode, setEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [hoveredCard, setHoveredCard] = useState(null);
 
   const [inspectorName, setInspectorName] = useState("");
   const [remark, setRemark] = useState("");
@@ -179,60 +169,16 @@ function CraneDetail() {
     setEditMode(false);
   };
 
-  if (loading) return <p style={{ padding: "20px", color: "#fff" }}>Loading...</p>;
-  if (!crane) return <p style={{ padding: "20px", color: "#fff" }}>Crane not found ❌</p>;
+  if (loading) return <p style={{ padding: "20px", color: "#475569" }}>Loading...</p>;
+  if (!crane) return <p style={{ padding: "20px", color: "#475569" }}>Crane not found ❌</p>;
 
-  const backgrounds = {
-    basic: "linear-gradient(135deg,#667eea,#764ba2)",
-    safety: "linear-gradient(135deg,#11998e,#38ef7d)",
-    brake: "linear-gradient(135deg,#ff512f,#dd2476)"
-  };
-
-  const getCardStyle = card => ({
-    background: backgrounds[card],
-    padding: "25px",
-    borderRadius: "20px",
-    minHeight: "420px",
-    transition: "all 0.3s ease",
-    transform: hoveredCard === card ? "translateY(-10px) scale(1.02)" : "translateY(0)",
-    boxShadow: hoveredCard === card ? "0 25px 50px rgba(0,0,0,0.3)" : "0 12px 30px rgba(0,0,0,0.15)",
-    color: "#ffffff"
-  });
-
-  const itemStyle = {
-    marginBottom: "14px",
-    paddingBottom: "8px",
-    borderBottom: "1px solid rgba(255,255,255,0.2)"
-  };
-
-  // 🔤 textTransform: "uppercase" को वापस जोड़ दिया गया है
-  const labelStyle = {
-    fontSize: "12px",
-    textTransform: "uppercase",
-    letterSpacing: "0.5px",
-    color: "rgba(255, 255, 255, 0.7)",
-    fontWeight: "bold",
-    marginBottom: "4px"
-  };
-
-  const inputStyle = {
-    width: "100%",
-    padding: "6px 10px",
-    borderRadius: "6px",
-    border: "1px solid rgba(255,255,255,0.5)",
-    background: "rgba(255,255,255,0.2)",
-    color: "#fff",
-    outline: "none"
-  };
+  const itemStyle = { marginBottom: "12px", padding: "13px", borderRadius: "12px", background: "rgba(255,255,255,.8)", border: "1px solid rgba(148,163,184,.18)" };
+  const labelStyle = { fontSize: "12px", color: "inherit", fontWeight: 750, marginBottom: "8px" };
+  const inputStyle = { width: "100%", padding: "10px", borderRadius: "9px", border: "1px solid #cbd5e1", boxSizing: "border-box" };
 
   return (
-    <div style={{
-      minHeight: "100vh",
-      padding: "clamp(14px, 3vw, 40px)",
-      background: "linear-gradient(135deg,#1f4037,#99f2c8)",
-      fontFamily: "system-ui, sans-serif"
-    }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+    <div className="crane-detail">
+      <div className="cd-toolbar">
         <button 
           onClick={() => navigate(-1)} 
           style={{ padding: "8px 16px", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: "bold" }}
@@ -278,14 +224,19 @@ function CraneDetail() {
         </div>
       </div>
 
-      <h2 style={{ color: "#ffffff", marginTop: "20px", fontSize: "28px" }}>
-        {crane.plant} - {crane.craneNo}
-      </h2>
+      <header className="cd-hero">
+        <div><span className="cd-eyebrow">WIDER ELECTRICAL · CRANE MANAGEMENT</span>
+          <h1>{crane.plant} <span>/</span> {crane.craneNo}</h1>
+          <p>Inspection records, safety checks &amp; maintenance insights</p>
+          <div className="cd-hero-tags"><span>⌖ {crane.location || "Location not recorded"}</span><span>Serial · {crane.serialNo || "—"}</span><span>Capacity · {crane.capacityTon ?? "—"} T</span></div>
+        </div>
+        <div className="cd-mode"><span className="cd-mode-icon" aria-hidden="true">◎</span><strong>{editMode ? "Inspection in progress" : "Crane Details"}</strong><small>{editMode ? "Review checks before saving" : "Equipment & inspection overview"}</small></div>
+      </header>
 
       <CraneAnalytics history={history} error={historyError} />
 
       {editMode && (
-        <div style={{ background: "#fff", padding: "20px", borderRadius: "12px", display: "grid", gap: "12px" }}>
+        <div className="cd-notes">
           <h3 style={{ margin: 0 }}>Inspection Notes</h3>
           <label>Inspector name *
             <input value={inspectorName} maxLength={120} disabled={saving} onChange={e => setInspectorName(e.target.value)}
@@ -304,7 +255,7 @@ function CraneDetail() {
       )}
 
       {crane.checksAreDefaults && (
-        <p style={{ color: "#fff" }}>
+        <p className="cd-default-notice">
           Next inspection defaults: OK / Within Limit. Saved inspection results are shown in history below.
         </p>
       )}
@@ -313,16 +264,14 @@ function CraneDetail() {
         
         {/* BASIC INFORMATION - Uneditable & Uppercase Labels */}
         <div
-          style={getCardStyle("basic")}
-          onMouseEnter={() => setHoveredCard("basic")}
-          onMouseLeave={() => setHoveredCard(null)}
+          className="cd-equipment-card cd-basic"
         >
           <h3 style={{ marginTop: 0, marginBottom: "20px", borderBottom: "2px solid #fff", paddingBottom: "5px" }}>Basic Information</h3>
           {["serialNo", "make", "capacityTon", "kw", "location"].map((field) => (
             <div key={field} style={itemStyle}>
-              <div style={labelStyle}>{field}</div>
+              <div style={labelStyle}>{{serialNo: "Serial Number", make: "Manufacturer", capacityTon: "Capacity (tonnes)", kw: "Power (kW)", location: "Location"}[field]}</div>
               <div style={{ fontSize: "16px", fontWeight: "500" }}>
-                {crane[field] || "—"}
+                {crane[field] ?? "—"}
               </div>
             </div>
           ))}
@@ -330,16 +279,14 @@ function CraneDetail() {
 
         {/* SAFETY CHECKS - Editable & Uppercase Labels */}
         <div
-          style={getCardStyle("safety")}
-          onMouseEnter={() => setHoveredCard("safety")}
-          onMouseLeave={() => setHoveredCard(null)}
+          className="cd-equipment-card cd-safety"
         >
           <h3 style={{ marginTop: 0, marginBottom: "20px", borderBottom: "2px solid #fff", paddingBottom: "5px" }}>Safety Checks</h3>
           {SAFETY_KEYS.map((key) => {
             const value = crane.safetyChecks[key] || "OK";
             return (
               <div key={key} style={itemStyle}>
-                <div style={labelStyle}>{key}</div>
+                <div style={labelStyle}>{checkLabel(key)}</div>
                 {editMode ? (
                   <select
                     value={value}
@@ -360,16 +307,14 @@ function CraneDetail() {
 
         {/* BRAKE CHECKS - Editable & Uppercase Labels */}
         <div
-          style={getCardStyle("brake")}
-          onMouseEnter={() => setHoveredCard("brake")}
-          onMouseLeave={() => setHoveredCard(null)}
+          className="cd-equipment-card cd-brake"
         >
           <h3 style={{ marginTop: 0, marginBottom: "20px", borderBottom: "2px solid #fff", paddingBottom: "5px" }}>Brake Checks</h3>
           {BRAKE_KEYS.map((key) => {
             const value = crane.brakeChecks[key] || "Within Limit";
             return (
               <div key={key} style={itemStyle}>
-                <div style={labelStyle}>{key}</div>
+                <div style={labelStyle}>{checkLabel(key)}</div>
                 {editMode ? (
                   <select
                     value={value}
@@ -389,12 +334,12 @@ function CraneDetail() {
         </div>
       </div>
 
-      <section style={{ marginTop: "35px", padding: "22px", background: "#fff7ed", borderRadius: "14px" }}>
+      <section className="cd-faults">
         <h2 style={{ color: "#9a3412" }}>Open Faults ({openIssues.length})</h2>
         <p>These faults remain open even when the next inspection defaults show OK / Within Limit.</p>
         {historyError && <p role="alert" style={{ color: "#b91c1c" }}>{historyError}</p>}
         {!historyError && openIssues.length === 0 && <p>No open faults in recorded inspections.</p>}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "16px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))", gap: "16px" }}>
           {openIssues.map(({ record, ...issue }) => {
             const draftKey = record._id + ":" + issue.issueKey;
             const draft = resolutionDrafts[draftKey] || {};
@@ -402,7 +347,7 @@ function CraneDetail() {
               ...prev, [draftKey]: { ...prev[draftKey], [field]: value }
             }));
             return (
-              <div key={draftKey} style={{ background: "#fff", border: "1px solid #fca5a5", padding: "16px", borderRadius: "10px" }}>
+              <div key={draftKey} className="cd-fault-card">
                 <strong>{checkLabel(issue.key)}</strong> <CheckBadge value={issue.value} />
                 <p style={{ color: "#991b1b", fontWeight: 700 }}>Open</p>
                 <p>{new Date(record.updatedAt).toLocaleString()} · {record.inspectorName || record.updatedBy}</p>
@@ -427,47 +372,17 @@ function CraneDetail() {
       </section>
 
       {/* ================= 🕒 HISTORY SECTION ================= */}
-      <div style={{ marginTop: "60px" }}>
-        <h2 style={{ color: "#ffffff", borderBottom: "2px solid rgba(255,255,255,0.3)", paddingBottom: "10px", marginBottom: "20px" }}>
+      <div className="cd-history">
+        <h2>
           🕒 Crane Inspection History
         </h2>
 
         {history.length === 0 ? (
-          <p style={{ color: "#fff" }}>No history available</p>
+          <p className="cd-empty">No history available. Saved inspections will appear here.</p>
         ) : (
-          <div 
-            style={{ 
-              display: "grid", 
-              gap: "20px"
-            }}
-            ref={(el) => {
-              if (el) {
-                const width = window.innerWidth;
-                if (width < 600) {
-                  el.style.gridTemplateColumns = "1fr";
-                } else if (width < 1300) {
-                  el.style.gridTemplateColumns = "repeat(auto-fill, minmax(22%, 1fr))";
-                } else {
-                  el.style.gridTemplateColumns = "repeat(auto-fill, minmax(15%, 1fr))";
-                }
-              }
-            }}
-          >
+          <div className="cd-history-grid">
             {history.map((h, index) => (
-              <div 
-                key={index} 
-                style={{
-                  background: historyColors[index % 6],
-                  color: "white",
-                  padding: "15px",
-                  borderRadius: "12px",
-                  boxShadow: "0 8px 20px rgba(0,0,0,0.25)",
-                  fontSize: "13px",
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "space-between"
-                }}
-              >
+              <div key={h._id || index} className={`cd-history-card cd-history-tone-${index % 4}`}>
                 <div>
                   <div style={{ borderBottom: "1px solid rgba(255,255,255,0.3)", paddingBottom: "5px", marginBottom: "10px" }}>
                     <div style={{ fontSize: "11px", opacity: 0.8 }}>{new Date(h.updatedAt).toLocaleString()}</div>
@@ -491,7 +406,7 @@ function CraneDetail() {
                     </div>
                   ))}
                   <div style={{ marginBottom: "10px" }}>
-                    <span style={{ fontSize: "11px", fontWeight: "bold", display: "block", color: "rgba(255,255,255,0.7)" }}>SAFETY</span>
+                    <span style={{ fontSize: "11px", fontWeight: "bold", display: "block", color: "#475569" }}>SAFETY</span>
                     {SAFETY_KEYS.map(key => (
                       <div key={key} style={{ marginTop: "6px", overflowWrap: "anywhere" }}>
                         {checkLabel(key)}: <CheckBadge value={(h.inspectionData || h.oldData)?.safetyChecks?.[key]} />
@@ -500,7 +415,7 @@ function CraneDetail() {
                   </div>
 
                   <div>
-                    <span style={{ fontSize: "11px", fontWeight: "bold", display: "block", color: "rgba(255,255,255,0.7)" }}>BRAKES</span>
+                    <span style={{ fontSize: "11px", fontWeight: "bold", display: "block", color: "#475569" }}>BRAKES</span>
                     {BRAKE_KEYS.map(key => (
                       <div key={key} style={{ marginTop: "6px", overflowWrap: "anywhere" }}>
                         {checkLabel(key)}: <CheckBadge value={(h.inspectionData || h.oldData)?.brakeChecks?.[key]} />
