@@ -55,8 +55,8 @@ export async function buildSafetyReport({kind,rows=[],filters={},generatedAt=new
   stats.forEach(([key,value],i)=>{rect(M,y,CW,40,i%2?'#ecfeff':'#ede9fe');text(key,M+12,y+12,10,'#4338ca',bold);text(value,M+340,y+10,15,'#172554',bold);y+=48;});
   const notes=[
    'Date range: '+(filters.from||'Any')+' to '+(filters.to||'Any'),
-   'Status: '+(filters.status||'All'), 'Search: '+(filters.query||'None'),
-   kind==='training'?'Participants are attendances, not unique people. Man-hours = hours x participants.':kind==='walk'?'Linked statuses are a snapshot. Legacy free-text observations are not counted.':'Incidents follow Reported, Under Review, Action Pending and Closed.',
+   'Status: '+(filters.status||'All'), 'Classification: '+(filters.category||'All'), 'Search: '+(filters.query||'None'),
+   kind==='injury'?'Counts use current classification. Lost days are manually verified, not calculated.':kind==='training'?'Participants are attendances, not unique people. Man-hours = hours x participants.':kind==='walk'?'Linked statuses are a snapshot. Legacy free-text observations are not counted.':'Incidents follow Reported, Under Review, Action Pending and Closed.',
    'Missing fields are labelled. This export follows the filters on the page.',
    'Change history is available from each record in the application.'
   ];
