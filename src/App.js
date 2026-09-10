@@ -47,6 +47,7 @@ import ACList from "./pages/ACList";
 import ACDetail from "./pages/ACDetail";
 
 import MotorSearch from "./pages/MotorSearch";
+import MotorQrDirectory from "./pages/MotorQrDirectory";
 import BridleTrends from "./pages/BridleTrends";
 
 function App() {
@@ -57,6 +58,7 @@ function App() {
         {/* ===== MAIN DASHBOARD ===== */}
         <Route path="/" element={<SteelPlantDashboard />} />
         <Route path="/motors/search" element={<MotorSearch />} />
+        <Route path="/motors/qr" element={<MotorQrDirectory />} />
         <Route path="/motors/bridle-trends" element={<BridleTrends />} />
 
         {/* ===== CGL ===== */}

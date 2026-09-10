@@ -1,3 +1,4 @@
+import MotorQrCard from '../components/MotorQrCard';
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import VibrationHistoryTabs from "../components/VibrationHistoryTabs";
@@ -29,6 +30,7 @@ function MotorDetail() {
 
   const [motorHistory, setMotorHistory] = useState([]);
   const [reportLoading, setReportLoading] = useState(false);
+  const [showQr, setShowQr] = useState(false);
 
   /* GREASING (CRM ONLY) */
   const [showGreasingForm, setShowGreasingForm] = useState(false);
@@ -203,9 +205,11 @@ function MotorDetail() {
           <button className="md-back" onClick={() => navigate("/")}>← Dashboard</button>
           <div className="md-nav-tools">
             <button className="md-back" onClick={() => navigate("/motors/search?plant="+encodeURIComponent(motor.plant||""))}>🔍 Search Motors</button>
+            <button className="md-back" aria-expanded={showQr} aria-controls="motor-qr-panel" onClick={()=>setShowQr(!showQr)}>▦ {showQr?"Hide Motor QR":"Motor QR / Download"}</button>
             <button className="md-report-button" disabled={reportLoading} onClick={exportReport}>{reportLoading ? "Preparing PDF…" : "↓ Download Motor Report"}</button>
           </div>
         </nav>
+        {showQr&&<section className="md-motor-qr" id="motor-qr-panel"><MotorQrCard motor={motor}/></section>}
         <header className="md-hero">
           <div>
             <div className="md-eyebrow">⚙ EQUIPMENT MAINTENANCE</div>
