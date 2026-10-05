@@ -29,6 +29,8 @@ The Vercel URL is defined in `src/utils/motorQr.js`; the API URL comes from the 
 ### Dashboard / UI
 
 - Plant navigation for CGL, CRM, CCL and Pickling, plus crane and safety dashboards.
+- AI Chatbot entry to the right of Motor QR Codes on the Master page, opening `/assistant`.
+- Hindi/Hinglish/English questions, editable suggestions, source record IDs, data-read timestamps, clear chat, retryable errors and labelled basic mode.
 - Master motor search with case-normalized, trimmed matching and plant, area and status filters.
 - Motor vibration history, bar/line charts and latest/previous/average/maximum summaries.
 - Bridle overview for CGL bridles 1–10 plus Hot Bridle, and CCL bridles 1–5: 32 A/B motor positions.
@@ -78,6 +80,7 @@ The backend uses direct MongoDB collection operations through Mongoose rather th
 | Area | Routes |
 | --- | --- |
 | Home / directories | `/`, `/motors/search`, `/motors/qr`, `/motors/bridle-trends` |
+| Database assistant | `/assistant` |
 | Motor details | `/motor/:id` |
 | CGL | `/cgl`, `/cgl/bridles`, `/cgl/bridle/:bridleNo`, `/cgl/area/:area` |
 | CCL | `/ccl`, `/ccl/bridles`, `/ccl/bridle/:bridleNo`, `/ccl/area/:area` |
@@ -95,6 +98,7 @@ Browser routes and API paths are different. For example, `/motor/:id` renders a 
 
 | UI capability | Backend paths used |
 | --- | --- |
+| Read-only database Q&A | `POST /assistant/chat` |
 | Directory and plant motor lists | `/motor-search`, `/motors/:plant/:area`, `/motors/:plant/:area/:bridleNo` |
 | Motor detail / maintenance | `/motors/:id`, `/motor-history/:motorId`, `/change-motor`, `/vibration-test`, `/vibration-test/:motorId`, `/greasing`, `/greasing/:motorId` |
 | Crane inspections / resolution | `/cranes?plant=...`, `/crane/:id`, `/crane-history/:craneId`, `/crane-history/:historyId/issues/:issueKey/resolve` |
@@ -116,7 +120,7 @@ steel-plant-frontend/
 │   ├── index.css                   # Global styles
 │   ├── App.js                      # BrowserRouter and application routes
 │   ├── App.css                     # App stylesheet
-│   ├── App.test.js                 # Original CRA sample test
+│   ├── App.test.js                 # Master navigation smoke test
 │   ├── setupTests.js               # Testing Library matchers
 │   ├── reportWebVitals.js          # Web-vitals helper
 │   ├── logo.svg                    # Original React logo asset
@@ -129,6 +133,8 @@ steel-plant-frontend/
 │   │   └── BridleButton.jsx        # Bridle navigation button
 │   ├── pages/                      # Plant, asset, search and safety screens
 │   │   ├── SteelPlantDashboard.jsx # Main navigation
+│   │   ├── DbAssistant.jsx         # Chat UI, fresh-data answers and source metadata
+│   │   ├── DbAssistant.test.jsx    # Successful chat, failure/retry and basic mode checks
 │   │   ├── MotorDetail.jsx         # Replacement, greasing, readings and report
 │   │   ├── MotorSearch.jsx         # Master directory and filters
 │   │   ├── MotorQrDirectory.jsx    # Paginated QR cards and bulk export
@@ -150,6 +156,7 @@ steel-plant-frontend/
 │       ├── motorQr.js              # Fixed deployment URL and QR helpers
 │       ├── motorQrPdf.js           # Printable labels
 │       └── *Report.js              # Motor, crane, bridle and safety PDFs
+├── .env.example                    # Public API origin template
 ├── .env                            # Committed public API origin
 ├── .gitignore                      # Generated files and local env overrides
 ├── package.json                    # Dependencies, scripts and browserslist
@@ -157,7 +164,7 @@ steel-plant-frontend/
 └── README.md                       # Project documentation
 ```
 
-There are no backend `api/`, `routes/` or `models/` directories here, and no committed `vercel.json`, `.env.example` or GitHub Actions workflow. Some original CRA files and unused components remain; `App.js` defines the active page routes.
+There are no backend `api/`, `routes/` or `models/` directories here, and no committed `vercel.json` or GitHub Actions workflow. Some original CRA files and unused components remain; `App.js` defines the active page routes.
 
 ## 🚀 Getting Started (Local Setup)
 
@@ -177,7 +184,13 @@ npm ci
 
 ### 2. Configure the API origin
 
-There is currently **no committed `.env.example`**. Create `.env.local` in the repository root:
+Copy `.env.example` to `.env.local`, then edit the API origin:
+
+```bash
+cp .env.example .env.local
+```
+
+Local configuration:
 
 ```dotenv
 REACT_APP_API_URL=http://localhost:5005
@@ -220,7 +233,7 @@ npx serve -s build
 npm test -- --watchAll=false
 ```
 
-The committed `src/App.test.js` still asserts a “Learn React” link from the original CRA template, which the current application does not render. Treat it as outdated test scaffolding, not feature coverage or proof of a passing suite. No passing frontend build/test result is asserted by this documentation update.
+The Master navigation smoke test, Master chatbot placement test and three assistant UI tests pass (three suites, five tests). CRA/Jest mappings and text encoders support the existing React Router 7 dependency. The production build also passed in CI mode during this update. These checks use mocked API responses; they do not establish live backend/model availability.
 
 ## ⚙️ Environment Variables
 
@@ -246,6 +259,14 @@ CRA embeds `REACT_APP_*` values into browser assets. This variable is a public e
 No `vercel.json` is committed. If your deployment does not provide SPA fallback, configure a rewrite to `/index.html` for frontend routes. The API is external and does not run from this repository.
 
 Git-triggered deployments can be configured through Vercel's Git integration; there is no checked-in CI/CD workflow or remote build-status badge. CRA builds on Vercel may treat lint warnings as failures when CI mode is enabled; review build logs rather than assuming local development success proves a deployment build passes.
+
+### Enable database AI answers
+
+The new Master entry opens `/assistant`. It sends a question and at most six bounded conversation messages to the backend's `POST /assistant/chat`; it never connects directly to MongoDB or OpenAI. Answers render as plain text, with source collections, matching counts, sampled record IDs and a read timestamp. Failed requests retain the question for retry. Clear chat removes the browser's conversation state; chat history is not persisted by this feature.
+
+Deploy both repositories. Configure `OPENAI_API_KEY` and `OPENAI_MODEL` **only on the Render backend**, then redeploy it. There are no AI secrets to add to Vercel. Without model configuration, or during provider failure, the screen clearly labels a basic database summary rather than claiming an AI answer. In AI mode, bounded database evidence is sent to OpenAI by the backend.
+
+Each request reads fresh saved data; there is no continuous/background monitor. Counts use full matching queries, while example records, field text and grouped breakdowns are bounded. Source metadata marks limited samples. Use explicit plant, serial number or motor ID for focused questions, and verify source records before operational decisions. The backend README explains retrieval limits, provider settings and throttling.
 
 ### Operational notes
 

@@ -49,6 +49,7 @@ import ACDetail from "./pages/ACDetail";
 import MotorSearch from "./pages/MotorSearch";
 import MotorQrDirectory from "./pages/MotorQrDirectory";
 import BridleTrends from "./pages/BridleTrends";
+import DbAssistant from "./pages/DbAssistant";
 
 function App() {
   return (
@@ -60,6 +61,7 @@ function App() {
         <Route path="/motors/search" element={<MotorSearch />} />
         <Route path="/motors/qr" element={<MotorQrDirectory />} />
         <Route path="/motors/bridle-trends" element={<BridleTrends />} />
+        <Route path="/assistant" element={<DbAssistant />} />
 
         {/* ===== CGL ===== */}
         <Route path="/cgl" element={<CGLDashboard />} />
